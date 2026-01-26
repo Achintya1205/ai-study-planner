@@ -8,13 +8,16 @@ import Analysis from './pages/Analysis';
 import Auth from './pages/Auth/Auth';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+  Boolean(localStorage.getItem("token")));
 
   return (
     <BrowserRouter>
+    {isAuthenticated && <Navbar />}
+
       <Routes>
         <Route path="/" element={<Navigate to="/auth" />} />
-        <Route path="/auth" element={<Auth setIsAuthenticated={setIsAuthenticated} />} />
+        <Route path="/auth" element={<Auth setIsAuthenticated={setIsAuthenticated} />}/>
         <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} />
         <Route path="/planner" element={isAuthenticated ? <Planner /> : <Navigate to="/auth" />} />
         <Route path="/analysis" element={isAuthenticated ? <Analysis /> : <Navigate to="/auth" />} />
