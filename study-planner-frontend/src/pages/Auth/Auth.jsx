@@ -129,6 +129,7 @@ function Auth({ setIsAuthenticated }) {
 
     setLoading(true);
     setError("");
+    
 
     try {
       const res = await fetch(`${API_URL}/api/login`, {
@@ -445,4 +446,4 @@ function Auth({ setIsAuthenticated }) {
   );
 }
 
-export default Auth;
+export default Auth; 
