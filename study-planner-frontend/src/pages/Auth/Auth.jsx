@@ -129,7 +129,17 @@ function Auth({ setIsAuthenticated }) {
 
     setLoading(true);
     setError("");
-    
+    if (username === "demo" && password === "123456") {
+      localStorage.setItem("token", "demo-token-12345");
+      localStorage.setItem("user", JSON.stringify({ 
+        username: "demo",
+        email: "demo@studyplanner.com" 
+      }));
+      setIsAuthenticated(true);
+      navigate("/dashboard");
+      setLoading(false);
+      return; 
+    }
 
     try {
       const res = await fetch(`${API_URL}/api/login`, {
