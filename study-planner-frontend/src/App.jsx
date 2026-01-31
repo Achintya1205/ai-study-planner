@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Auth from './pages/Auth/Auth.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Navbar from './components/navbar.jsx';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -10,13 +11,13 @@ function App() {
 
   return (
     <BrowserRouter>
+      {isAuthenticated && <Navbar setIsAuthenticated={setIsAuthenticated} />}
+      
       <Routes>
-        {/* Redirect root to auth or dashboard based on authentication */}
         <Route 
           path="/" 
           element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} 
         />
-        
         {/* Auth route */}
         <Route 
           path="/auth" 
@@ -26,8 +27,7 @@ function App() {
             <Auth setIsAuthenticated={setIsAuthenticated} />
           }
         />
-        
-        {/* Protected Dashboard route */}
+        {/* Dashboard route */}
         <Route 
           path="/dashboard" 
           element={
@@ -37,7 +37,7 @@ function App() {
           } 
         />
         
-        {/* Placeholder routes for quick actions (add these pages later) */}
+        {/* Placeholder routes */}
         <Route 
           path="/study-session" 
           element={
@@ -80,7 +80,6 @@ function App() {
           } 
         />
         
-        {/* Catch all - redirect to home */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
