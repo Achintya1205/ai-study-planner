@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Plus, 
@@ -12,13 +13,14 @@ import {
 } from 'lucide-react';
 
 function Subjects() {
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // Form state
+ 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,7 +28,7 @@ function Subjects() {
     targetScore: 80
   });
 
-  // Color options matching your theme
+  
   const colorOptions = [
     { name: 'emerald', class: 'from-emerald-500 to-cyan-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
     { name: 'purple', class: 'from-purple-500 to-pink-500', bg: 'bg-purple-50', text: 'text-purple-600' },
@@ -36,13 +38,13 @@ function Subjects() {
     { name: 'pink', class: 'from-pink-500 to-rose-500', bg: 'bg-pink-50', text: 'text-pink-600' }
   ];
 
-  // Load dummy data on mount
+  
   useEffect(() => {
     loadSubjects();
   }, []);
 
   const loadSubjects = () => {
-    // Dummy data (replace with API call later)
+    
     const dummySubjects = [
       {
         id: 1,
@@ -101,7 +103,6 @@ function Subjects() {
 
     setLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       const newSubject = {
         id: Date.now(),
@@ -129,7 +130,6 @@ function Subjects() {
 
     setLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       setSubjects(subjects.map(subject =>
         subject.id === editingSubject.id
@@ -200,7 +200,7 @@ function Subjects() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
+      
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
@@ -316,7 +316,6 @@ function Subjects() {
                       <BookOpen className="h-6 w-6 text-white/80" />
                     </div>
 
-                    {/* Progress Bar */}
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-white/90">Progress</span>
@@ -330,7 +329,6 @@ function Subjects() {
                       </div>
                     </div>
                   </div>
-
                   {/* Body */}
                   <div className="p-6">
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -347,21 +345,30 @@ function Subjects() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex space-x-2">
+                    <div className="space-y-2">
                       <button
-                        onClick={() => openEditModal(subject)}
-                        className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                        onClick={() => navigate(`/topics?subject=${subject.id}`)}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg hover:from-emerald-600 hover:to-cyan-600 transition-colors font-medium"
                       >
-                        <Edit2 className="h-4 w-4" />
-                        <span>Edit</span>
+                        <BookMarked className="h-4 w-4" />
+                        <span>View Topics</span>
                       </button>
-                      <button
-                        onClick={() => handleDeleteSubject(subject.id)}
-                        className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Delete</span>
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openEditModal(subject)}
+                          className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSubject(subject.id)}
+                          className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -405,8 +412,6 @@ function Subjects() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                 />
               </div>
-
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
@@ -443,7 +448,6 @@ function Subjects() {
                 </div>
               </div>
 
-              {/* Target Score */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target Score (%)
@@ -489,5 +493,4 @@ function Subjects() {
     </div>
   );
 }
-
 export default Subjects;

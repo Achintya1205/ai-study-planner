@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Auth from './pages/Auth/Auth.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Subjects from './pages/Subjects.jsx';
+import Topics from './pages/Topics.jsx';
 import Navbar from './components/navbar.jsx';
 
 function App() {
@@ -37,16 +38,24 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
-        
+        {/* Subjects route */}
         <Route 
-          path ="/subjects"
-          element= {
-            isAuthenticated ?
-            <Subjects /> :
+          path="/subjects" 
+          element={
+            isAuthenticated ? 
+            <Subjects /> : 
             <Navigate to="/auth" />
           } 
         />
-        {/* Placeholder routes */}
+        {/* Topics route */}
+        <Route 
+          path="/topics" 
+          element={
+            isAuthenticated ? 
+            <Topics /> : 
+            <Navigate to="/auth" />
+          } 
+        />
         <Route 
           path="/study-session" 
           element={
@@ -60,7 +69,6 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
-        
         <Route 
           path="/analytics" 
           element={
