@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen, BarChart3, Brain, Home, BookMarked } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Brain, Home } from 'lucide-react';
 
 function Navbar({ setIsAuthenticated }) {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ function Navbar({ setIsAuthenticated }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="flex items-center space-x-2">
             <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 p-2 rounded-lg">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
@@ -35,14 +35,6 @@ function Navbar({ setIsAuthenticated }) {
             >
               <Home className="h-5 w-5" />
               <span className="font-medium">Dashboard</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/subjects')}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <BookMarked className="h-5 w-5" />
-              <span className="font-medium">Subjects</span>
             </button>
 
             <button
