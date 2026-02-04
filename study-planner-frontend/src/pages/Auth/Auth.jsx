@@ -63,7 +63,7 @@ function Auth({ setIsAuthenticated }) {
 
   const validateLoginForm = () => {
     const newErrors = {};
-
+  
     if (!username.trim()) {
       newErrors.username = "Username is required";
     }
@@ -197,23 +197,23 @@ function Auth({ setIsAuthenticated }) {
             <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => handleTabChange("login")}
-                className={`flex-1 py-2.5 px-4 rounded-md font-semibold text-sm transition-all ${
+                className={`flex-1 py-2.5 px-4 rounded-md font-semibold text-base transition-all ${
                   tab === "login"
                     ? "bg-white text-emerald-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                🔐 Login
+                 Login
               </button>
               <button
                 onClick={() => handleTabChange("register")}
-                className={`flex-1 py-2.5 px-4 rounded-md font-semibold text-sm transition-all ${
+                className={`flex-1 py-2.5 px-4 rounded-md font-semibold text-base transition-all ${
                   tab === "register"
                     ? "bg-white text-emerald-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                ✨ Register
+                 Register
               </button>
             </div>
 

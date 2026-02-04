@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Auth from './pages/Auth/Auth.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Subjects from './pages/Subjects.jsx';
 import Navbar from './components/navbar.jsx';
 
 function App() {
@@ -37,6 +38,14 @@ function App() {
           } 
         />
         
+        <Route 
+          path ="/subjects"
+          element= {
+            isAuthenticated ?
+            <Subjects /> :
+            <Navigate to="/auth" />
+          } 
+        />
         {/* Placeholder routes */}
         <Route 
           path="/study-session" 
