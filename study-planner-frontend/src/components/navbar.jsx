@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen, BarChart3, Brain, Home, BookMarked, Library } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Brain, Home, BookMarked, Library, ClipboardCheck } from 'lucide-react';
 
 function Navbar({ setIsAuthenticated }) {
   const navigate = useNavigate();
@@ -12,11 +12,12 @@ function Navbar({ setIsAuthenticated }) {
     setIsAuthenticated(false);
     navigate('/auth');
   };
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          
+
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
             <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 p-2 rounded-lg">
               <BookOpen className="h-6 w-6 text-white" />
@@ -25,7 +26,7 @@ function Navbar({ setIsAuthenticated }) {
               AI Study Planner
             </span>
           </div>
-          {/* Navigation Links */}
+
           <div className="hidden md:flex items-center space-x-1">
             <button
               onClick={() => navigate('/dashboard')}
@@ -49,6 +50,14 @@ function Navbar({ setIsAuthenticated }) {
             >
               <Library className="h-5 w-5" />
               <span className="font-medium">Topics</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/tests')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <ClipboardCheck className="h-5 w-5" />
+              <span className="font-medium">Tests</span>
             </button>
 
             <button
@@ -82,7 +91,7 @@ function Navbar({ setIsAuthenticated }) {
             <button
               onClick={handleLogout}
               className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium"
-            >
+            npm run dev>
               <LogOut className="h-5 w-5" />
               <span>Logout</span>
             </button>

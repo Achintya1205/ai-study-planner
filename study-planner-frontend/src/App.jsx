@@ -4,6 +4,7 @@ import Auth from './pages/Auth/Auth.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Subjects from './pages/Subjects.jsx';
 import Topics from './pages/Topics.jsx';
+import Tests from './pages/Tests.jsx';
 import Navbar from './components/navbar.jsx';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Auth setIsAuthenticated={setIsAuthenticated} />
           }
         />
+        
         {/* Dashboard route */}
         <Route 
           path="/dashboard" 
@@ -38,6 +40,7 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
+        
         {/* Subjects route */}
         <Route 
           path="/subjects" 
@@ -47,6 +50,7 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
+        
         {/* Topics route */}
         <Route 
           path="/topics" 
@@ -56,6 +60,18 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
+        
+        {/* Tests route */}
+        <Route 
+          path="/tests" 
+          element={
+            isAuthenticated ? 
+            <Tests /> : 
+            <Navigate to="/auth" />
+          } 
+        />
+        
+        {/* Placeholder routes */}
         <Route 
           path="/study-session" 
           element={
@@ -69,6 +85,7 @@ function App() {
             <Navigate to="/auth" />
           } 
         />
+        
         <Route 
           path="/analytics" 
           element={
