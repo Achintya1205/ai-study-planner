@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Subjects from './pages/Subjects.jsx';
 import Topics from './pages/Topics.jsx';
 import Tests from './pages/Tests.jsx';
+import StudySession from './pages/StudySession.jsx';
 import Navbar from './components/navbar.jsx';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           path="/" 
           element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} 
         />
+        
         {/* Auth route */}
         <Route 
           path="/auth" 
@@ -71,21 +73,17 @@ function App() {
           } 
         />
         
-        {/* Placeholder routes */}
+        {/* Study Session route */}
         <Route 
           path="/study-session" 
           element={
             isAuthenticated ? 
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Study Session</h1>
-                <p className="text-gray-600">This page will be built next!</p>
-              </div>
-            </div> : 
+            <StudySession /> : 
             <Navigate to="/auth" />
           } 
         />
         
+        {/* Placeholder routes */}
         <Route 
           path="/analytics" 
           element={
