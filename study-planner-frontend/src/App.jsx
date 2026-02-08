@@ -6,6 +6,7 @@ import Subjects from './pages/Subjects.jsx';
 import Topics from './pages/Topics.jsx';
 import Tests from './pages/Tests.jsx';
 import StudySession from './pages/StudySession.jsx';
+import Analytics from './pages/Analytics.jsx';
 import Navbar from './components/navbar.jsx';
 
 function App() {
@@ -83,17 +84,12 @@ function App() {
           } 
         />
         
-        {/* Placeholder routes */}
+        {/* Analytics route */}
         <Route 
           path="/analytics" 
           element={
             isAuthenticated ? 
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">Analytics</h1>
-                <p className="text-gray-600">Analytics page coming soon!</p>
-              </div>
-            </div> : 
+            <Analytics /> : 
             <Navigate to="/auth" />
           } 
         />
