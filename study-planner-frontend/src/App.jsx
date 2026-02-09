@@ -7,7 +7,8 @@ import Topics from './pages/Topics.jsx';
 import Tests from './pages/Tests.jsx';
 import StudySession from './pages/StudySession.jsx';
 import Analytics from './pages/Analytics.jsx';
-import Navbar from './components/navbar.jsx';
+import StudyPlan from './pages/Studyplan.jsx';
+import Navbar from './components/Navbar.jsx';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -94,20 +95,15 @@ function App() {
           } 
         />
         
+        {/* Study Plan route */}
         <Route 
           path="/study-plan" 
           element={
             isAuthenticated ? 
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">AI Study Plan</h1>
-                <p className="text-gray-600">AI-powered study planner coming soon!</p>
-              </div>
-            </div> : 
+            <StudyPlan /> : 
             <Navigate to="/auth" />
           } 
         />
-        
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

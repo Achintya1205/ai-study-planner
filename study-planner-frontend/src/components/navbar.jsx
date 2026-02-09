@@ -78,10 +78,10 @@ function Navbar({ setIsAuthenticated }) {
 
             <button
               onClick={() => navigate('/study-plan')}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
             >
               <Brain className="h-5 w-5" />
-              <span className="font-medium">AI Study Plan</span>
+              <span className="font-medium">AI Planner</span>
             </button>
           </div>
 
