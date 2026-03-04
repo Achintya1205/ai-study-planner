@@ -4,11 +4,10 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 dotenv.config();
-
 connectDB();
-
 const app = express();
 
+// Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
@@ -32,6 +31,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API Routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -39,6 +42,7 @@ app.use((req, res) => {
   });
 });
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
