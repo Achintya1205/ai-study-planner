@@ -7,7 +7,6 @@ dotenv.config();
 connectDB();
 const app = express();
 
-// Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
@@ -15,6 +14,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Basic route
 app.get('/', (req, res) => {
   res.json({
     message: 'AI Study Planner API',
@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check route
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -33,8 +34,14 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+const subjectRoutes = require('./routes/subjects');
+const topicRoutes = require('./routes/topics');
 
+app.use('/api/auth', authRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/topics', topicRoutes);
+
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
