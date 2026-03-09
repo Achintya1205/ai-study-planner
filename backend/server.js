@@ -7,6 +7,7 @@ dotenv.config();
 connectDB();
 const app = express();
 
+// Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
@@ -36,12 +37,15 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/auth');
 const subjectRoutes = require('./routes/subjects');
 const topicRoutes = require('./routes/topics');
+const testRoutes = require('./routes/tests');
+const sessionRoutes = require('./routes/sessions');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/topics', topicRoutes);
+app.use('/api/tests', testRoutes);
+app.use('/api/sessions', sessionRoutes);
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
