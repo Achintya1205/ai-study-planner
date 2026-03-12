@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, BookOpen, Filter, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { getTopics, createTopic, updateTopic, deleteTopic, getSubjects } from '../api/study.api';
- 
+
 function Topics() {
   const [searchParams] = useSearchParams();
   const subjectIdFromUrl = searchParams.get('subject');
- 
+
   const [topics, setTopics] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,23 +22,23 @@ function Topics() {
     score: 0
   });
   const [error, setError] = useState('');
- 
+
   const difficultyColors = {
     easy: { bg: 'bg-green-100', text: 'text-green-700', badge: 'Easy' },
     medium: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'Medium' },
     hard: { bg: 'bg-red-100', text: 'text-red-700', badge: 'Hard' }
   };
- 
+
   useEffect(() => {
     fetchData();
   }, []);
- 
+
   useEffect(() => {
     if (subjectIdFromUrl) {
       setFilterSubject(subjectIdFromUrl);
     }
   }, [subjectIdFromUrl]);
- 
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -56,15 +56,15 @@ function Topics() {
       setLoading(false);
     }
   };
- 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
- 
+
     if (!formData.name.trim() || !formData.subject) {
       setError('Topic name and subject are required');
       return;
     }
- 
+
     try {
       if (editingTopic) {
         await updateTopic(editingTopic._id, {
@@ -76,7 +76,7 @@ function Topics() {
       } else {
         await createTopic(formData);
       }
- 
+
       await fetchData();
       handleCloseModal();
       setError('');
@@ -85,7 +85,7 @@ function Topics() {
       console.error('Error saving topic:', err);
     }
   };
- 
+
   const handleEdit = (topic) => {
     setEditingTopic(topic);
     setFormData({
@@ -97,12 +97,12 @@ function Topics() {
     });
     setShowModal(true);
   };
- 
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this topic?')) {
       return;
     }
- 
+
     try {
       await deleteTopic(id);
       await fetchData();
@@ -112,7 +112,7 @@ function Topics() {
       console.error('Error deleting topic:', err);
     }
   };
- 
+
   const handleToggleWeak = async (topic) => {
     try {
       const newScore = topic.isWeak ? 70 : 50; // Toggle between weak/strong
@@ -123,14 +123,14 @@ function Topics() {
       console.error('Error updating topic:', err);
     }
   };
- 
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingTopic(null);
     setFormData({ subject: '', name: '', description: '', difficulty: 'medium', score: 0 });
     setError('');
   };
- 
+
   const filteredTopics = topics.filter(topic => {
     const matchesSubject = filterSubject === 'all' || (topic.subject?._id === filterSubject);
     const matchesStatus = filterStatus === 'all' ||
@@ -138,9 +138,9 @@ function Topics() {
       (filterStatus === 'strong' && !topic.isWeak);
     return matchesSubject && matchesStatus;
   });
- 
+
   const weakTopicsCount = topics.filter(t => t.isWeak).length;
- 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -151,7 +151,7 @@ function Topics() {
       </div>
     );
   }
- 
+
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
@@ -159,7 +159,7 @@ function Topics() {
         <h1 className="text-3xl font-bold mb-2">📖 Study Topics</h1>
         <p className="text-purple-50">Track your progress across all topics</p>
       </div>
- 
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -176,7 +176,7 @@ function Topics() {
             <p className="text-2xl font-bold text-emerald-600">{topics.length - weakTopicsCount}</p>
           </div>
         </div>
- 
+
         {/* Filters and Add Button */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -197,7 +197,7 @@ function Topics() {
                   ))}
                 </select>
               </div>
- 
+
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
@@ -213,7 +213,7 @@ function Topics() {
                 </select>
               </div>
             </div>
- 
+
             <button
               onClick={() => setShowModal(true)}
               className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-600 hover:to-cyan-600 transition flex items-center gap-2 whitespace-nowrap w-full sm:w-auto"
@@ -223,14 +223,14 @@ function Topics() {
             </button>
           </div>
         </div>
- 
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
- 
+
         {/* Topics List */}
         {filteredTopics.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
@@ -255,7 +255,7 @@ function Topics() {
             {filteredTopics.map((topic) => {
               const diffColor = difficultyColors[topic.difficulty] || difficultyColors.medium;
               const subjectColor = topic.subject?.color || 'emerald';
- 
+
               return (
                 <div
                   key={topic._id}
@@ -272,11 +272,11 @@ function Topics() {
                       {diffColor.badge}
                     </span>
                   </div>
- 
+
                   {topic.description && (
                     <p className="text-sm text-gray-600 mb-3">{topic.description}</p>
                   )}
- 
+
                   <div className="mb-3">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-gray-600">Score</span>
@@ -291,7 +291,7 @@ function Topics() {
                       ></div>
                     </div>
                   </div>
- 
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleToggleWeak(topic)}
@@ -320,7 +320,7 @@ function Topics() {
           </div>
         )}
       </div>
- 
+
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -328,7 +328,7 @@ function Topics() {
             <h2 className="text-2xl font-bold mb-4">
               {editingTopic ? 'Edit Topic' : 'Add New Topic'}
             </h2>
- 
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -347,7 +347,7 @@ function Topics() {
                   ))}
                 </select>
               </div>
- 
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Topic Name *
@@ -361,7 +361,7 @@ function Topics() {
                   required
                 />
               </div>
- 
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -374,7 +374,7 @@ function Topics() {
                   placeholder="Brief description"
                 />
               </div>
- 
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Difficulty
@@ -389,7 +389,7 @@ function Topics() {
                   <option value="hard">Hard</option>
                 </select>
               </div>
- 
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Score (%)
@@ -403,7 +403,7 @@ function Topics() {
                   max="100"
                 />
               </div>
- 
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -426,5 +426,5 @@ function Topics() {
     </div>
   );
 }
- 
+
 export default Topics;
