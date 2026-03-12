@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { register, login } from '../../api/auth.api.js';
 
 function Auth({ setIsAuthenticated }) {
   const navigate = useNavigate();
@@ -88,33 +87,24 @@ function Auth({ setIsAuthenticated }) {
     setSuccess("");
 
     try {
-      const res = await fetch(`${API_URL}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
-      });
+      const data = await register({ username, email, password });
 
-      const data = await res.json();
+      if (data.success) {
+        setSuccess("Account created successfully! Redirecting to login...");
+        
+        setUsername("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setErrors({});
 
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
-        return;
+        setTimeout(() => {
+          setTab("login");
+          setSuccess("");
+        }, 2000);
       }
-
-      setSuccess("Account created successfully! Redirecting to login...");
-
-      setUsername("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setErrors({});
-
-      setTimeout(() => {
-        setTab("login");
-        setSuccess("");
-      }, 2000);
     } catch (err) {
-      setError("Network error. Make sure backend is running.");
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -129,39 +119,20 @@ function Auth({ setIsAuthenticated }) {
 
     setLoading(true);
     setError("");
-    if (username === "demo" && password === "123456") {
-      localStorage.setItem("token", "demo-token-12345");
-      localStorage.setItem("user", JSON.stringify({ 
-        username: "demo",
-        email: "demo@studyplanner.com" 
-      }));
-      setIsAuthenticated(true);
-      navigate("/dashboard");
-      setLoading(false);
-      return; 
-    }
 
     try {
-      const res = await fetch(`${API_URL}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      const data = await login({ username, password });
 
-      const data = await res.json();
+      if (data.success) {
+        // Store token and user data
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
 
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        return;
+        setIsAuthenticated(true);
+        navigate("/dashboard");
       }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      setIsAuthenticated(true);
-      navigate("/dashboard");
     } catch (err) {
-      setError("Network error. Make sure backend is running.");
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -235,7 +206,7 @@ function Auth({ setIsAuthenticated }) {
               <form onSubmit={handleLogin} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Username or Email
+                    Username
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -436,14 +407,6 @@ function Auth({ setIsAuthenticated }) {
                 </button>
               </form>
             )}
-
-            {/* Demo Info */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">💡 Demo Credentials:</span> Use
-                username "demo" and password "123456"!
-              </p>
-            </div>
           </div>
         </div>
 
@@ -456,4 +419,4 @@ function Auth({ setIsAuthenticated }) {
   );
 }
 
-export default Auth; 
+export default Auth;
