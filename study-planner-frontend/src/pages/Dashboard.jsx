@@ -1,103 +1,106 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, 
+  BookMarked, 
   Clock, 
   TrendingUp, 
-  Target,
+  AlertCircle, 
+  Target, 
+  Calendar,
   BarChart3,
   Brain,
-  Calendar,
-  Award
+  Flame
 } from 'lucide-react';
+import { getSubjects, getTopics, getTests, getSessions, getSessionStats } from '../api/study.api';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalSubjects: 0,
+    totalTopics: 0,
+    studyHours: 0,
+    avgProgress: 0,
+    weakTopics: 0,
+    studyStreak: 7,
+    recentTests: []
+  });
+  const [weakTopics, setWeakTopics] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [error, setError] = useState('');
 
-  // Get user data from localStorage
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    fetchDashboardData();
   }, []);
 
-  // Dummy stats data (will be replaced with real API data later)
-  const stats = [
-    {
-      title: 'Total Subjects',
-      value: '6',
-      icon: BookOpen,
-      color: 'from-emerald-500 to-cyan-500',
-      bgColor: 'bg-emerald-50',
-      iconColor: 'text-emerald-600'
-    },
-    {
-      title: 'Study Hours',
-      value: '24h',
-      icon: Clock,
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600'
-    },
-    {
-      title: 'Overall Progress',
-      value: '68%',
-      icon: TrendingUp,
-      color: 'from-cyan-500 to-blue-500',
-      bgColor: 'bg-cyan-50',
-      iconColor: 'text-cyan-600'
-    },
-    {
-      title: 'Weak Topics',
-      value: '3',
-      icon: Target,
-      color: 'from-orange-500 to-red-500',
-      bgColor: 'bg-orange-50',
-      iconColor: 'text-orange-600'
-    }
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      const [subjectsRes, topicsRes, testsRes, sessionsRes, sessionStatsRes] = await Promise.all([
+        getSubjects(),
+        getTopics(),
+        getTests(),
+        getSessions(),
+        getSessionStats()
+      ]);
 
-  // Quick action cards
-  const quickActions = [
-    {
-      title: 'Study Session',
-      description: 'Start a new study session',
-      icon: BookOpen,
-      color: 'bg-gradient-to-r from-emerald-500 to-cyan-500',
-      action: () => navigate('/study-session')
-    },
-    {
-      title: 'View Analytics',
-      description: 'Check your performance',
-      icon: BarChart3,
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500',
-      action: () => navigate('/analytics')
-    },
-    {
-      title: 'AI Study Plan',
-      description: 'Get personalized plan',
-      icon: Brain,
-      color: 'bg-gradient-to-r from-cyan-500 to-blue-500',
-      action: () => navigate('/study-plan')
-    }
-  ];
+      const subjects = subjectsRes.data || [];
+      const topics = topicsRes.data || [];
+      const tests = testsRes.data || [];
+      const sessions = sessionsRes.data || [];
+      const sessionStats = sessionStatsRes.data || {};
 
-  // Recent weak topics (dummy data)
-  const weakTopics = [
-    { subject: 'Mathematics', topic: 'Calculus - Integration', score: 45 },
-    { subject: 'Physics', topic: 'Electromagnetism', score: 52 },
-    { subject: 'Chemistry', topic: 'Organic Reactions', score: 48 }
-  ];
+      // Calculate stats
+      const weak = topics.filter(t => t.isWeak);
+      const avgProgress = subjects.length > 0
+        ? Math.round(subjects.reduce((sum, s) => sum + (s.currentScore || 0), 0) / subjects.length)
+        : 0;
+
+      setStats({
+        totalSubjects: subjects.length,
+        totalTopics: topics.length,
+        studyHours: sessionStats.totalHours || 0,
+        avgProgress,
+        weakTopics: weak.length,
+        studyStreak: 7, // Can be calculated from sessions dates
+        recentTests: tests.slice(0, 5)
+      });
+
+      setWeakTopics(weak.slice(0, 5));
+
+      // Recent activity
+      const activity = [
+        ...sessions.slice(0, 3).map(s => ({
+          type: 'session',
+          text: `Studied ${s.subject?.name} for ${s.duration} min`,
+          time: new Date(s.date).toLocaleDateString()
+        })),
+        ...tests.slice(0, 2).map(t => ({
+          type: 'test',
+          text: `${t.name}: ${t.percentage}%`,
+          time: new Date(t.date).toLocaleDateString()
+        }))
+      ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
+
+      setRecentActivity(activity);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to load dashboard data');
+      console.error('Dashboard error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -105,158 +108,215 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">
-                Welcome back, {user?.username || 'Student'}! 👋
-              </h1>
-              <p className="text-emerald-50 text-lg">
-                Ready to continue your learning journey?
-              </p>
-            </div>
-            <div className="hidden md:flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg">
-              <Calendar className="h-5 w-5" />
-              <span className="font-medium">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white p-8">
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.username || 'Student'}! 👋</h1>
+        <p className="text-emerald-50">{today}</p>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={index}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6"
-              >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Total Subjects</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.totalSubjects}</p>
+              </div>
+              <div className="bg-emerald-100 p-3 rounded-full">
+                <BookMarked className="h-8 w-8 text-emerald-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Study Hours</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.studyHours}h</p>
+              </div>
+              <div className="bg-cyan-100 p-3 rounded-full">
+                <Clock className="h-8 w-8 text-cyan-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Overall Progress</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.avgProgress}%</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Weak Topics</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.weakTopics}</p>
+              </div>
+              <div className="bg-orange-100 p-3 rounded-full">
+                <AlertCircle className="h-8 w-8 text-orange-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  onClick={() => navigate('/study-session')}
+                  className="bg-gradient-to-r from-emerald-500 to-green-500 text-white p-4 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition flex items-center justify-center gap-2"
+                >
+                  <Target className="h-5 w-5" />
+                  Study Session
+                </button>
+                <button
+                  onClick={() => navigate('/analytics')}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition flex items-center justify-center gap-2"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                  View Analytics
+                </button>
+                <button
+                  onClick={() => navigate('/study-plan')}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition flex items-center justify-center gap-2"
+                >
+                  <Brain className="h-5 w-5" />
+                  AI Study Plan
+                </button>
+              </div>
+            </div>
+
+            {/* Weak Topics */}
+            {weakTopics.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">Topics Needing Attention</h2>
+                  <AlertCircle className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="space-y-3">
+                  {weakTopics.map((topic) => (
+                    <div key={topic._id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800">{topic.name}</h3>
+                        <p className="text-sm text-gray-600">{topic.subject?.name}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-bold text-orange-600">{topic.score}%</p>
+                          <p className="text-xs text-gray-500">{topic.difficulty}</p>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/topics?subject=${topic.subject?._id}`)}
+                          className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 transition"
+                        >
+                          Practice
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Activity */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
+              {recentActivity.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No recent activity</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className={`p-2 rounded-full ${
+                        activity.type === 'session' ? 'bg-emerald-100' : 'bg-purple-100'
+                      }`}>
+                        {activity.type === 'session' ? (
+                          <Clock className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <Target className="h-4 w-4 text-purple-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-800">{activity.text}</p>
+                        <p className="text-sm text-gray-500">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Study Streak */}
+            <div className="bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold">Study Streak</h3>
+                <Flame className="h-8 w-8" />
+              </div>
+              <p className="text-4xl font-bold mb-2">{stats.studyStreak} days</p>
+              <p className="text-orange-100 text-sm">Keep it up! 🔥</p>
+            </div>
+
+            {/* Recent Test Scores */}
+            {stats.recentTests.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Tests</h3>
+                <div className="space-y-3">
+                  {stats.recentTests.map((test) => (
+                    <div key={test._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-gray-800 text-sm">{test.name}</p>
+                        <p className="text-xs text-gray-500">{new Date(test.date).toLocaleDateString()}</p>
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        test.percentage >= 60 ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
+                        {test.percentage}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Progress Summary */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">This Week</h3>
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-500 text-sm font-medium mb-1">
-                      {stat.title}
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div className={`${stat.bgColor} p-3 rounded-lg`}>
-                    <Icon className={`h-6 w-6 ${stat.iconColor}`} />
-                  </div>
+                  <span className="text-gray-600">Topics Covered</span>
+                  <span className="font-bold text-gray-800">{stats.totalTopics}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Weak Topics</span>
+                  <span className="font-bold text-orange-600">{stats.weakTopics}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Avg Progress</span>
+                  <span className="font-bold text-emerald-600">{stats.avgProgress}%</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Quick Actions and Weak Topics Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={action.action}
-                    className={`${action.color} text-white p-6 rounded-xl hover:shadow-lg transition-all transform hover:-translate-y-1`}
-                  >
-                    <Icon className="h-8 w-8 mb-3" />
-                    <h3 className="font-bold text-lg mb-1">{action.title}</h3>
-                    <p className="text-sm text-white/90">{action.description}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Study Streak */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Study Streak</h2>
-              <Award className="h-6 w-6 text-yellow-500" />
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-emerald-600 mb-2">7</div>
-              <p className="text-gray-600 font-medium">Days in a row! 🔥</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Keep it up! You're on fire!
-              </p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">This Week</span>
-                <span className="font-semibold text-gray-900">5 / 7 days</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Weak Topics Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Topics Needing Attention</h2>
-            <button 
-              onClick={() => navigate('/analytics')}
-              className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center"
-            >
-              View All
-              <TrendingUp className="h-4 w-4 ml-1" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {weakTopics.map((topic, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{topic.topic}</p>
-                  <p className="text-sm text-gray-500">{topic.subject}</p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Score</p>
-                    <p className={`font-bold ${
-                      topic.score < 50 ? 'text-red-600' : 'text-orange-600'
-                    }`}>
-                      {topic.score}%
-                    </p>
-                  </div>
-                  <button className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors">
-                    Practice
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Progress Chart Placeholder */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Progress</h2>
-          <div className="h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">Chart will be added here</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Connected to analytics API
-              </p>
             </div>
           </div>
         </div>

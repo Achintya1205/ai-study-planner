@@ -1,399 +1,361 @@
 import { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Calendar,
-  Target,
-  Award,
-  AlertCircle,
-  BookOpen,
-  Clock,
-  Filter,
-  Download
-} from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Download, Filter } from 'lucide-react';
+import { getSubjects, getTopics, getTests, getSessions } from '../api/study.api';
 
 function Analytics() {
+  const [loading, setLoading] = useState(true);
+  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterTime, setFilterTime] = useState('all');
   const [subjects, setSubjects] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [tests, setTests] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [timeRange, setTimeRange] = useState('7'); // days
+  const [analytics, setAnalytics] = useState({
+    subjectPerformance: [],
+    recentTests: [],
+    weakTopics: [],
+    studyTimeBreakdown: []
+  });
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    fetchAnalytics();
+  }, [filterSubject, filterTime]);
 
-  const loadData = () => {
-    const dummySubjects = [
-      { id: 1, name: 'Mathematics', color: 'emerald' },
-      { id: 2, name: 'Physics', color: 'purple' },
-      { id: 3, name: 'Chemistry', color: 'cyan' },
-      { id: 4, name: 'Computer Science', color: 'orange' }
-    ];
-    setSubjects(dummySubjects);
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      
+      const [subjectsRes, topicsRes, testsRes, sessionsRes] = await Promise.all([
+        getSubjects(),
+        getTopics(),
+        getTests(),
+        getSessions()
+      ]);
 
+      const allSubjects = subjectsRes.data || [];
+      const allTopics = topicsRes.data || [];
+      let allTests = testsRes.data || [];
+      let allSessions = sessionsRes.data || [];
 
-    const dummyTopics = [
-      { id: 1, name: 'Calculus - Integration', subjectId: '1', score: 45, isWeak: true },
-      { id: 2, name: 'Calculus - Differentiation', subjectId: '1', score: 78, isWeak: false },
-      { id: 3, name: 'Linear Algebra', subjectId: '1', score: 52, isWeak: true },
-      { id: 4, name: 'Electromagnetism', subjectId: '2', score: 48, isWeak: true },
-      { id: 5, name: 'Mechanics - Kinematics', subjectId: '2', score: 85, isWeak: false },
-      { id: 6, name: 'Organic Chemistry - Reactions', subjectId: '3', score: 50, isWeak: true },
-      { id: 7, name: 'Data Structures - Trees', subjectId: '4', score: 72, isWeak: false },
-      { id: 8, name: 'Algorithms - Sorting', subjectId: '4', score: 80, isWeak: false }
-    ];
-    setTopics(dummyTopics);
+      setSubjects(allSubjects);
 
-    // test results
-    const dummyTests = [
-      { id: 1, subjectId: '1', subjectName: 'Mathematics', percentage: 45, date: '2024-02-01' },
-      { id: 2, subjectId: '1', subjectName: 'Mathematics', percentage: 78, date: '2024-02-03' },
-      { id: 3, subjectId: '2', subjectName: 'Physics', percentage: 48, date: '2024-02-02' },
-      { id: 4, subjectId: '2', subjectName: 'Physics', percentage: 85, date: '2024-02-04' },
-      { id: 5, subjectId: '3', subjectName: 'Chemistry', percentage: 50, date: '2024-02-01' },
-      { id: 6, subjectId: '4', subjectName: 'Computer Science', percentage: 72, date: '2024-02-03' },
-      { id: 7, subjectId: '4', subjectName: 'Computer Science', percentage: 92, date: '2024-02-05' },
-      { id: 8, subjectId: '1', subjectName: 'Mathematics', percentage: 58, date: '2024-02-06' }
-    ];
-    setTests(dummyTests);
+      // Apply time filter
+      const now = new Date();
+      let cutoffDate = new Date(0); // Beginning of time
+      
+      if (filterTime === '7d') {
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (filterTime === '30d') {
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (filterTime === '3mo') {
+        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      }
 
-    // study sessions
-    const dummySessions = [
-      { id: 1, subjectId: '1', subjectName: 'Mathematics', duration: 45, date: '2024-02-05' },
-      { id: 2, subjectId: '2', subjectName: 'Physics', duration: 60, date: '2024-02-05' },
-      { id: 3, subjectId: '1', subjectName: 'Mathematics', duration: 30, date: '2024-02-04' },
-      { id: 4, subjectId: '4', subjectName: 'Computer Science', duration: 90, date: '2024-02-04' },
-      { id: 5, subjectId: '3', subjectName: 'Chemistry', duration: 50, date: '2024-02-03' },
-      { id: 6, subjectId: '2', subjectName: 'Physics', duration: 40, date: '2024-02-03' },
-      { id: 7, subjectId: '4', subjectName: 'Computer Science', duration: 75, date: '2024-02-02' },
-      { id: 8, subjectId: '1', subjectName: 'Mathematics', duration: 55, date: '2024-02-02' }
-    ];
-    setSessions(dummySessions);
+      if (filterTime !== 'all') {
+        allTests = allTests.filter(t => new Date(t.date) >= cutoffDate);
+        allSessions = allSessions.filter(s => new Date(s.date) >= cutoffDate);
+      }
+
+      // Apply subject filter
+      if (filterSubject !== 'all') {
+        allTests = allTests.filter(t => t.subject?._id === filterSubject);
+        allSessions = allSessions.filter(s => s.subject?._id === filterSubject);
+      }
+
+      // Calculate subject performance
+      const subjectPerformance = allSubjects.map(subject => {
+        const subjectTopics = allTopics.filter(t => 
+          t.subject?._id === subject._id || t.subject === subject._id
+        );
+        const avgScore = subjectTopics.length > 0
+          ? subjectTopics.reduce((sum, t) => sum + (t.score || 0), 0) / subjectTopics.length
+          : 0;
+        
+        return {
+          name: subject.name,
+          score: Math.round(avgScore),
+          color: subject.color,
+          topics: subjectTopics.length
+        };
+      }).filter(s => filterSubject === 'all' || s.name === allSubjects.find(sub => sub._id === filterSubject)?.name);
+
+      // Recent tests
+      const recentTests = allTests
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10)
+        .map(t => ({
+          name: t.name,
+          subject: t.subject?.name,
+          score: t.percentage,
+          date: new Date(t.date).toLocaleDateString(),
+          passed: t.percentage >= 60
+        }));
+
+      // Weak topics analysis
+      const weakTopics = allTopics
+        .filter(t => t.isWeak)
+        .filter(t => filterSubject === 'all' || t.subject?._id === filterSubject)
+        .map(t => ({
+          name: t.name,
+          subject: t.subject?.name,
+          score: t.score,
+          severity: t.score < 40 ? 'Critical' : t.score < 50 ? 'Needs Work' : 'Review',
+          difficulty: t.difficulty
+        }))
+        .sort((a, b) => a.score - b.score);
+
+      // Study time breakdown
+      const studyTimeBreakdown = allSubjects.map(subject => {
+        const subjectSessions = allSessions.filter(s => 
+          s.subject?._id === subject._id || s.subject === subject._id
+        );
+        const totalMinutes = subjectSessions.reduce((sum, s) => sum + s.duration, 0);
+        
+        return {
+          name: subject.name,
+          minutes: totalMinutes,
+          hours: Math.floor(totalMinutes / 60),
+          color: subject.color
+        };
+      }).filter(s => s.minutes > 0 && (filterSubject === 'all' || s.name === allSubjects.find(sub => sub._id === filterSubject)?.name));
+
+      setAnalytics({
+        subjectPerformance,
+        recentTests,
+        weakTopics,
+        studyTimeBreakdown
+      });
+
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to load analytics');
+      console.error('Analytics error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // data by subject
-  const filteredTopics = selectedSubject === 'all' 
-    ? topics 
-    : topics.filter(t => t.subjectId === selectedSubject);
-
-  const filteredTests = selectedSubject === 'all'
-    ? tests
-    : tests.filter(t => t.subjectId === selectedSubject);
-
-  const filteredSessions = selectedSubject === 'all'
-    ? sessions
-    : sessions.filter(s => s.subjectId === selectedSubject);
-
-  const stats = {
-    totalTopics: filteredTopics.length,
-    weakTopics: filteredTopics.filter(t => t.isWeak).length,
-    avgScore: filteredTopics.length > 0 
-      ? Math.round(filteredTopics.reduce((sum, t) => sum + t.score, 0) / filteredTopics.length) 
-      : 0,
-    totalTests: filteredTests.length,
-    avgTestScore: filteredTests.length > 0
-      ? Math.round(filteredTests.reduce((sum, t) => sum + t.percentage, 0) / filteredTests.length)
-      : 0,
-    totalStudyHours: Math.floor(filteredSessions.reduce((sum, s) => sum + s.duration, 0) / 60),
-    totalStudyMinutes: filteredSessions.reduce((sum, s) => sum + s.duration, 0) % 60,
-    improvement: 12 // Dummy improvement percentage
-  };
-
-  // Subject-wise breakdown
-  const subjectBreakdown = subjects.map(subject => {
-    const subjectTopics = topics.filter(t => t.subjectId === subject.id.toString());
-    const subjectTests = tests.filter(t => t.subjectId === subject.id.toString());
-    const subjectSessions = sessions.filter(s => s.subjectId === subject.id.toString());
-    
-    return {
-      name: subject.name,
-      color: subject.color,
-      topics: subjectTopics.length,
-      weakTopics: subjectTopics.filter(t => t.isWeak).length,
-      avgScore: subjectTopics.length > 0
-        ? Math.round(subjectTopics.reduce((sum, t) => sum + t.score, 0) / subjectTopics.length)
-        : 0,
-      tests: subjectTests.length,
-      studyTime: subjectSessions.reduce((sum, s) => sum + s.duration, 0)
-    };
-  });
-
-  const weakTopicsList = topics.filter(t => t.isWeak).sort((a, b) => a.score - b.score);
-
-  const recentTests = tests.slice(-7).reverse();
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBg = (score) => {
-    if (score >= 80) return 'bg-green-50';
-    if (score >= 60) return 'bg-yellow-50';
-    return 'bg-red-50';
-  };
-
-  const getColorClass = (colorName) => {
+  const getColorClasses = (color) => {
     const colors = {
-      emerald: { from: 'from-emerald-500', to: 'to-cyan-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-      purple: { from: 'from-purple-500', to: 'to-pink-500', bg: 'bg-purple-50', text: 'text-purple-600' },
-      cyan: { from: 'from-cyan-500', to: 'to-blue-500', bg: 'bg-cyan-50', text: 'text-cyan-600' },
-      orange: { from: 'from-orange-500', to: 'to-red-500', bg: 'bg-orange-50', text: 'text-orange-600' }
+      emerald: { bg: 'bg-emerald-500', light: 'bg-emerald-100', text: 'text-emerald-700' },
+      purple: { bg: 'bg-purple-500', light: 'bg-purple-100', text: 'text-purple-700' },
+      cyan: { bg: 'bg-cyan-500', light: 'bg-cyan-100', text: 'text-cyan-700' },
+      orange: { bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-700' },
+      indigo: { bg: 'bg-indigo-500', light: 'bg-indigo-100', text: 'text-indigo-700' },
+      pink: { bg: 'bg-pink-500', light: 'bg-pink-100', text: 'text-pink-700' }
     };
-    return colors[colorName] || colors.emerald;
+    return colors[color] || colors.emerald;
   };
+
+  const getSeverityColor = (severity) => {
+    return severity === 'Critical' ? 'text-red-700 bg-red-100' :
+           severity === 'Needs Work' ? 'text-orange-700 bg-orange-100' :
+           'text-yellow-700 bg-yellow-100';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Analytics Dashboard 📊</h1>
-              <p className="text-purple-50">Comprehensive insights into your learning progress</p>
-            </div>
-            <button className="flex items-center space-x-2 bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors shadow-lg">
-              <Download className="h-5 w-5" />
-              <span>Export Report</span>
-            </button>
+    <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">📊 Analytics Dashboard</h1>
+            <p className="text-purple-100">Insights into your study performance</p>
           </div>
+          <button className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Export Report
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Subject
-              </label>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-gray-600" />
+              <span className="font-semibold text-gray-700">Filters:</span>
+            </div>
+            
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
               <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                value={filterSubject}
+                onChange={(e) => setFilterSubject(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="all">All Subjects</option>
                 {subjects.map(subject => (
-                  <option key={subject.id} value={subject.id.toString()}>
-                    {subject.name}
-                  </option>
+                  <option key={subject._id} value={subject._id}>{subject.name}</option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Time Range
-              </label>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
               <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                value={filterTime}
+                onChange={(e) => setFilterTime(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="7">Last 7 Days</option>
-                <option value="30">Last 30 Days</option>
-                <option value="90">Last 3 Months</option>
                 <option value="all">All Time</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+                <option value="3mo">Last 3 Months</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <Target className="h-6 w-6 text-purple-600" />
-              </div>
-              <span className={`text-sm font-semibold ${stats.improvement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                +{stats.improvement}%
-              </span>
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Average Score</p>
-            <p className={`text-3xl font-bold mt-1 ${getScoreColor(stats.avgScore)}`}>
-              {stats.avgScore}%
-            </p>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
           </div>
+        )}
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Weak Topics</p>
-            <p className="text-3xl font-bold text-orange-600 mt-1">{stats.weakTopics}</p>
-            <p className="text-xs text-gray-500 mt-1">out of {stats.totalTopics} topics</p>
+        {/* Subject Performance */}
+        <div className="bg-white rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-purple-600" />
+            <h2 className="text-xl font-bold text-gray-800">Subject Performance</h2>
           </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-cyan-50 p-3 rounded-lg">
-                <BookOpen className="h-6 w-6 text-cyan-600" />
-              </div>
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Tests Completed</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalTests}</p>
-            <p className="text-xs text-gray-500 mt-1">Avg: {stats.avgTestScore}%</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-emerald-50 p-3 rounded-lg">
-                <Clock className="h-6 w-6 text-emerald-600" />
-              </div>
-            </div>
-            <p className="text-gray-500 text-sm font-medium">Study Time</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
-              {stats.totalStudyHours}h {stats.totalStudyMinutes}m
-            </p>
-          </div>
-        </div>
-
-        {/* Charts*/}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2 text-purple-600" />
-              Subject Performance
-            </h2>
-            <div className="space-y-4">
-              {subjectBreakdown.map((subject, index) => {
-                const colorClass = getColorClass(subject.color);
-                return (
-                  <div key={index}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">{subject.name}</span>
-                      <span className={`text-sm font-bold ${getScoreColor(subject.avgScore)}`}>
-                        {subject.avgScore}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className={`bg-gradient-to-r ${colorClass.from} ${colorClass.to} h-3 rounded-full transition-all`}
-                        style={{ width: `${subject.avgScore}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-                      <span>{subject.topics} topics</span>
-                      <span>{Math.floor(subject.studyTime / 60)}h {subject.studyTime % 60}m studied</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Test Score Trend */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-purple-600" />
-              Recent Test Scores
-            </h2>
-            <div className="space-y-3">
-              {recentTests.map((test, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{test.subjectName}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(test.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreBg(test.percentage)} ${getScoreColor(test.percentage)}`}>
-                    {test.percentage}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Weak Topics Analysis */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-orange-600" />
-            Topics Needing Attention
-          </h2>
-          {weakTopicsList.length === 0 ? (
-            <div className="text-center py-8">
-              <Award className="h-16 w-16 text-green-500 mx-auto mb-3" />
-              <p className="text-lg font-semibold text-gray-900">Great job!</p>
-              <p className="text-gray-500">No weak topics found. Keep up the excellent work!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {weakTopicsList.map((topic, index) => {
-                const subject = subjects.find(s => s.id.toString() === topic.subjectId);
-                const colorClass = getColorClass(subject?.color || 'emerald');
-                return (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{topic.name}</h3>
-                        <p className={`text-sm ${colorClass.text} mt-1`}>
-                          {subject?.name}
-                        </p>
+          <div className="p-6">
+            {analytics.subjectPerformance.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No performance data available</p>
+            ) : (
+              <div className="space-y-4">
+                {analytics.subjectPerformance.map((subject, index) => {
+                  const colors = getColorClasses(subject.color);
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-800">{subject.name}</span>
+                          <span className="text-sm text-gray-500">({subject.topics} topics)</span>
+                        </div>
+                        <span className="font-bold text-gray-800">{subject.score}%</span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold bg-red-50 text-red-600`}>
-                        {topic.score}%
-                      </span>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full ${colors.bg}`}
+                          style={{ width: `${subject.score}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-red-500 h-2 rounded-full"
-                        style={{ width: `${topic.score}%` }}
-                      ></div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-xs text-gray-500">
-                        {topic.score < 40 ? 'Critical' : topic.score < 60 ? 'Needs Work' : 'Review'}
-                      </span>
-                      <button className="text-xs font-medium text-purple-600 hover:text-purple-700">
-                        Study Now →
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Test Scores */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+              <TrendingUp className="h-6 w-6 text-emerald-600" />
+              <h2 className="text-xl font-bold text-gray-800">Recent Test Scores</h2>
             </div>
-          )}
+            <div className="p-6">
+              {analytics.recentTests.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No test data available</p>
+              ) : (
+                <div className="space-y-3">
+                  {analytics.recentTests.map((test, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">{test.name}</p>
+                        <p className="text-sm text-gray-500">{test.subject} • {test.date}</p>
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        test.passed ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
+                        {test.score}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Weak Topics Analysis */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-orange-600" />
+              <h2 className="text-xl font-bold text-gray-800">Weak Topics Analysis</h2>
+            </div>
+            <div className="p-6">
+              {analytics.weakTopics.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-emerald-600 font-semibold mb-2">🎉 Great job!</p>
+                  <p className="text-gray-500">No weak topics found</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {analytics.weakTopics.map((topic, index) => (
+                    <div key={index} className="p-3 bg-orange-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-gray-800">{topic.name}</span>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getSeverityColor(topic.severity)}`}>
+                          {topic.severity}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{topic.subject} • {topic.difficulty}</span>
+                        <span className="font-bold text-orange-600">{topic.score}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Study Time Breakdown */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-purple-600" />
-            Study Time by Subject
-          </h2>
-          <div className="space-y-4">
-            {subjectBreakdown.map((subject, index) => {
-              const colorClass = getColorClass(subject.color);
-              const totalMinutes = sessions.reduce((sum, s) => sum + s.duration, 0);
-              const percentage = totalMinutes > 0 ? Math.round((subject.studyTime / totalMinutes) * 100) : 0;
-              
-              return (
-                <div key={index}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{subject.name}</span>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-500">
-                        {Math.floor(subject.studyTime / 60)}h {subject.studyTime % 60}m
-                      </span>
-                      <span className="text-sm font-bold text-gray-900">{percentage}%</span>
+        <div className="bg-white rounded-lg shadow mt-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800">Study Time Breakdown</h2>
+          </div>
+          <div className="p-6">
+            {analytics.studyTimeBreakdown.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No study session data available</p>
+            ) : (
+              <div className="space-y-4">
+                {analytics.studyTimeBreakdown.map((item, index) => {
+                  const colors = getColorClasses(item.color);
+                  const totalMinutes = analytics.studyTimeBreakdown.reduce((sum, s) => sum + s.minutes, 0);
+                  const percentage = totalMinutes > 0 ? (item.minutes / totalMinutes) * 100 : 0;
+                  
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-gray-800">{item.name}</span>
+                        <span className="text-gray-600">{item.hours}h {item.minutes % 60}m</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full ${colors.bg}`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={`bg-gradient-to-r ${colorClass.from} ${colorClass.to} h-3 rounded-full transition-all`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

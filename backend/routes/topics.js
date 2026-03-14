@@ -6,9 +6,9 @@ const { protect } = require('../middleware/auth');
 
 // Helper function to keep logic consistent
 const calculateTopicStats = (score) => {
-  let difficulty = 'medium';
-  if (score >= 70) difficulty = 'hard';
-  else if (score < 50) difficulty = 'easy';
+  let difficulty = 'hard'; 
+  if (score >= 80) difficulty = 'easy';
+  else if (score >= 50) difficulty = 'medium';
   
   return {
     difficulty,
