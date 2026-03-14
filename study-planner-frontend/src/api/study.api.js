@@ -216,3 +216,14 @@ export const deleteSession = async (id) => {
     throw error.response?.data || { message: 'Failed to delete session' };
   }
 };
+
+// ==================== AI STUDY PLAN ====================
+
+export const generateStudyPlan = async (config) => {
+  try {
+    const response = await api.post('/ai/study-plan', config);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to generate study plan' };
+  }
+};
