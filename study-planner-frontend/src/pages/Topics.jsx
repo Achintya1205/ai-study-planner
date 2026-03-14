@@ -22,14 +22,12 @@ function Topics() {
   });
   const [error, setError] = useState('');
 
-  // 🎨 Difficulty Tag Colors
   const difficultyColors = {
     easy: { bg: 'bg-green-100', text: 'text-green-700', badge: 'Easy' },
     medium: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'Medium' },
     hard: { bg: 'bg-red-100', text: 'text-red-700', badge: 'Hard' }
   };
 
-  // 🎨 Subject Theme Map (Border color and matching text color)
   const subjectThemes = {
     purple: { border: 'border-t-purple-500', text: 'text-purple-600' },
     blue: { border: 'border-t-blue-500', text: 'text-blue-600' },
@@ -98,13 +96,22 @@ function Topics() {
     setFormData({ subject: '', name: '', description: '', score: 0 });
   };
 
-  const filteredTopics = topics.filter(topic => {
-    const matchesSubject = filterSubject === 'all' || (topic.subject?._id === filterSubject);
-    const matchesStatus = filterStatus === 'all' || 
-      (filterStatus === 'weak' && topic.isWeak) || 
-      (filterStatus === 'strong' && !topic.isWeak);
-    return matchesSubject && matchesStatus;
-  });
+  // 🔍 Updated Filtering and Sorting Logic
+  const filteredTopics = topics
+    .filter(topic => {
+      const matchesSubject = filterSubject === 'all' || (topic.subject?._id === filterSubject);
+      
+      // Strong = Easy (>= 80)
+      // Weak = Medium or Hard (< 80)
+      const isEasy = topic.difficulty === 'easy';
+      const matchesStatus = filterStatus === 'all' || 
+        (filterStatus === 'strong' && isEasy) || 
+        (filterStatus === 'weak' && !isEasy);
+        
+      return matchesSubject && matchesStatus;
+    })
+    // Sort by Score (Highest to Lowest)
+    .sort((a, b) => b.score - a.score);
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -128,12 +135,12 @@ function Topics() {
             <p className="text-2xl font-bold text-gray-800">{topics.length}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4 text-center">
-            <p className="text-sm text-gray-600 font-medium">Weak</p>
-            <p className="text-2xl font-bold text-orange-600">{topics.filter(t => t.isWeak).length}</p>
+            <p className="text-sm text-gray-600 font-medium">Weak (Med/Hard)</p>
+            <p className="text-2xl font-bold text-orange-600">{topics.filter(t => t.difficulty !== 'easy').length}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4 text-center">
-            <p className="text-sm text-gray-600 font-medium">Strong</p>
-            <p className="text-2xl font-bold text-emerald-600">{topics.filter(t => !t.isWeak).length}</p>
+            <p className="text-sm text-gray-600 font-medium">Strong (Easy)</p>
+            <p className="text-2xl font-bold text-emerald-600">{topics.filter(t => t.difficulty === 'easy').length}</p>
           </div>
         </div>
 
@@ -142,7 +149,7 @@ function Topics() {
           <div className="flex flex-1 gap-4 w-full">
             <div className="flex-1">
               <label className="text-xs font-bold text-gray-500 uppercase">Subject</label>
-              <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} className="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-2 focus:ring-purple-200">
+              <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} className="w-full border p-2 rounded-lg mt-1 outline-none">
                 <option value="all">All Subjects</option>
                 {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
               </select>
@@ -151,8 +158,8 @@ function Topics() {
               <label className="text-xs font-bold text-gray-500 uppercase">Status</label>
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full border p-2 rounded-lg mt-1 outline-none">
                 <option value="all">All Status</option>
-                <option value="weak">Weak</option>
-                <option value="strong">Strong</option>
+                <option value="strong">Strong (Easy)</option>
+                <option value="weak">Weak (Medium/Hard)</option>
               </select>
             </div>
           </div>
@@ -170,9 +177,8 @@ function Topics() {
             return (
               <div 
                 key={topic._id} 
-                className={`bg-white rounded-xl shadow-md border-t-4 ${theme.border} py-8 px-5 transition-transform hover:scale-[1.01] flex flex-col justify-between`}
+                className={`bg-white rounded-xl shadow-md border-t-4 ${theme.border} py-8 px-5 flex flex-col justify-between`}
               >
-                {/* Header Section */}
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">{topic.name}</h3>
@@ -185,7 +191,6 @@ function Topics() {
                   </span>
                 </div>
                 
-                {/* Mastery Bar Section */}
                 <div className="mb-8">
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-500 font-medium">Mastery</span>
@@ -203,7 +208,6 @@ function Topics() {
                   </div>
                 </div>
 
-                {/* Actions Section */}
                 <div className="flex gap-2 pt-4 border-t border-gray-50">
                   <button onClick={() => handleEdit(topic)} className="flex-1 flex justify-center items-center gap-2 bg-gray-50 text-gray-600 py-2.5 rounded-lg hover:bg-gray-100 transition font-semibold text-sm">
                     <Edit2 size={14}/> Edit
@@ -229,7 +233,7 @@ function Topics() {
                 <select 
                   value={formData.subject} 
                   onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                  className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-purple-500 outline-none"
+                  className="w-full border-2 border-gray-100 p-3 rounded-xl outline-none"
                   required
                 >
                   <option value="">Select Subject</option>
@@ -242,7 +246,7 @@ function Topics() {
                   type="text" 
                   value={formData.name} 
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-purple-500 outline-none"
+                  className="w-full border-2 border-gray-100 p-3 rounded-xl outline-none"
                   required
                 />
               </div>
@@ -250,15 +254,18 @@ function Topics() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Score (%)</label>
                 <input 
                   type="number" 
-                  value={formData.score} 
+                  // 🛠️ FIX FOR THE "021" BUG:
+                  // We parse the value as an integer. If the input is empty, we set it to 0.
+                  value={formData.score === 0 ? "" : formData.score} 
+                  placeholder="0"
                   onChange={(e) => setFormData({...formData, score: parseInt(e.target.value) || 0})}
-                  className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-purple-500 outline-none"
+                  className="w-full border-2 border-gray-100 p-3 rounded-xl outline-none"
                   min="0" max="100"
                 />
               </div>
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 py-3 font-bold text-gray-400 hover:text-gray-600">Cancel</button>
-                <button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-purple-200">Save</button>
+                <button type="submit" className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">Save</button>
               </div>
             </form>
           </div>
