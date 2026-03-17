@@ -4,7 +4,28 @@ const Topic = require('../models/Topic');
 const Subject = require('../models/Subject');
 const { protect } = require('../middleware/auth');
 
-// Helper function to keep logic consistent
+// --- NEW HELPER: The "Bridge" between Topics and Subjects ---
+const updateSubjectProgress = async (subjectId, userId) => {
+  try {
+    // 1. Get all topics for this subject
+    const topics = await Topic.find({ subject: subjectId, user: userId });
+    
+    if (topics.length === 0) {
+      await Subject.findByIdAndUpdate(subjectId, { currentScore: 0 });
+      return;
+    }
+
+    // 2. Calculate the average score (The Factor that moves the bar)
+    const totalScore = topics.reduce((sum, topic) => sum + (topic.score || 0), 0);
+    const averageScore = Math.round(totalScore / topics.length);
+
+    // 3. Sync to Subject model
+    await Subject.findByIdAndUpdate(subjectId, { currentScore: averageScore });
+  } catch (error) {
+    console.error('Progress sync failed:', error);
+  }
+};
+
 const calculateTopicStats = (score) => {
   let difficulty = 'hard'; 
   if (score >= 80) difficulty = 'easy';
@@ -16,7 +37,7 @@ const calculateTopicStats = (score) => {
   };
 };
 
-// @route   GET /api/topics
+// GET /api/topics
 router.get('/', protect, async (req, res) => {
   try {
     const { subject } = req.query;
@@ -33,7 +54,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/topics
+// POST /api/topics
 router.post('/', protect, async (req, res) => {
   try {
     const { subject, name, description, score, lastStudied } = req.body;
@@ -42,7 +63,6 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Required fields missing' });
     }
 
-    // NEW LOGIC: Calculate difficulty and weakness based on score
     const { difficulty, isWeak } = calculateTopicStats(score || 0);
 
     const topic = await Topic.create({
@@ -50,11 +70,14 @@ router.post('/', protect, async (req, res) => {
       subject,
       name,
       description,
-      difficulty, // Auto-assigned
+      difficulty,
       score: score || 0,
-      isWeak,      // Auto-assigned
+      isWeak,
       lastStudied
     });
+
+    // TRIGGER: Sync progress to Subject
+    await updateSubjectProgress(subject, req.user._id);
 
     await topic.populate('subject', 'name color');
     res.status(201).json({ success: true, data: topic });
@@ -63,7 +86,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/topics/:id
+// PUT /api/topics/:id
 router.put('/:id', protect, async (req, res) => {
   try {
     let topic = await Topic.findOne({ _id: req.params.id, user: req.user._id });
@@ -72,17 +95,10 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Topic not found' });
     }
 
-    // Extracting score from body; if not provided, keep current score
     const newScore = req.body.score !== undefined ? req.body.score : topic.score;
-    
-    // NEW LOGIC: Sync difficulty and weakness whenever a topic is updated
     const { difficulty, isWeak } = calculateTopicStats(newScore);
 
-    const updateData = {
-      ...req.body,
-      difficulty,
-      isWeak
-    };
+    const updateData = { ...req.body, difficulty, isWeak };
 
     topic = await Topic.findByIdAndUpdate(
       req.params.id,
@@ -90,17 +106,27 @@ router.put('/:id', protect, async (req, res) => {
       { new: true, runValidators: true }
     ).populate('subject', 'name color');
 
+    // TRIGGER: Sync progress to Subject
+    await updateSubjectProgress(topic.subject, req.user._id);
+
     res.json({ success: true, data: topic });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// @route   DELETE /api/topics/:id
+// DELETE /api/topics/:id
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const topic = await Topic.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const topic = await Topic.findOne({ _id: req.params.id, user: req.user._id });
     if (!topic) return res.status(404).json({ success: false, message: 'Topic not found' });
+
+    const subjectId = topic.subject;
+    await topic.deleteOne();
+
+    // TRIGGER: Sync progress to Subject after deletion
+    await updateSubjectProgress(subjectId, req.user._id);
+
     res.json({ success: true, message: 'Topic deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
