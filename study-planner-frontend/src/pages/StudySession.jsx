@@ -24,6 +24,18 @@ function StudySession() {
   const [error, setError] = useState('');
   const intervalRef = useRef(null);
 
+  // 🛑 Navigation Alert logic
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isRunning || time > 0) {
+        e.preventDefault();
+        e.returnValue = ''; 
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isRunning, time]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -34,16 +46,9 @@ function StudySession() {
         setTime(prev => prev + 1);
       }, 1000);
     } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning]);
 
   const fetchData = async () => {
@@ -61,8 +66,7 @@ function StudySession() {
       setTopics(topicsRes.data || []);
       setError('');
     } catch (err) {
-      setError(err.message || 'Failed to load data');
-      console.error('Error fetching data:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -84,18 +88,11 @@ function StudySession() {
     setError('');
   };
 
-  const handlePause = () => {
-    setIsRunning(false);
-  };
+  const handlePause = () => setIsRunning(false);
 
   const handleStopAndSave = async () => {
     if (time === 0) {
       setError('No time to save');
-      return;
-    }
-
-    if (!currentSubject || !currentTopic) {
-      setError('Please select subject and topic');
       return;
     }
 
@@ -106,13 +103,14 @@ function StudySession() {
         return;
       }
 
+      // ⭐ DATE CHANGE 1: Use ISO string for the backend to avoid 'Invalid Date'
       await createSession({
         subject: currentSubject,
         topic: currentTopic,
         duration: durationMinutes,
         notes: '',
         focus: 5,
-        date: new Date()
+        date: new Date().toISOString().split('T')[0]
       });
 
       setIsRunning(false);
@@ -120,62 +118,52 @@ function StudySession() {
       setCurrentSubject('');
       setCurrentTopic('');
       await fetchData();
-      setError('');
     } catch (err) {
-      setError(err.message || 'Failed to save session');
-      console.error('Error saving session:', err);
+      setError('Failed to save session');
     }
   };
 
   const handleManualEntry = async (e) => {
     e.preventDefault();
-
     if (!formData.subject || !formData.topic || formData.duration < 1) {
       setError('Subject, topic, and duration (min 1 min) are required');
       return;
+    }
+    if (new Date(formData.date) > new Date()) {
+        setError('Session date cannot be in the future');
+        return;
     }
 
     try {
       await createSession(formData);
       await fetchData();
       handleCloseModal();
-      setError('');
     } catch (err) {
-      setError(err.message || 'Failed to save session');
-      console.error('Error saving session:', err);
+      setError('Failed to save manual session');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this session?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
     try {
       await deleteSession(id);
       await fetchData();
-      setError('');
     } catch (err) {
-      setError(err.message || 'Failed to delete session');
-      console.error('Error deleting session:', err);
+      setError('Failed to delete session');
     }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setFormData({
-      subject: '',
-      topic: '',
-      duration: 0,
-      notes: '',
-      focus: 5,
-      date: new Date().toISOString().split('T')[0]
+      subject: '', topic: '', duration: 0, notes: '',
+      focus: 5, date: new Date().toISOString().split('T')[0]
     });
     setError('');
   };
 
   const getFilteredTopics = (subjectId) => {
-    return topics.filter(t => t.subject === subjectId || t.subject._id === subjectId);
+    return topics.filter(t => (t.subject?._id || t.subject) === subjectId);
   };
 
   if (loading) {
@@ -231,32 +219,21 @@ function StudySession() {
             </p>
           </div>
 
-          {/* Subject and Topic Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subject
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
               <select
                 value={currentSubject}
-                onChange={(e) => {
-                  setCurrentSubject(e.target.value);
-                  setCurrentTopic('');
-                }}
+                onChange={(e) => { setCurrentSubject(e.target.value); setCurrentTopic(''); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 disabled={isRunning}
               >
                 <option value="">Select Subject</option>
-                {subjects.map(subject => (
-                  <option key={subject._id} value={subject._id}>{subject.name}</option>
-                ))}
+                {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Topic
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
               <select
                 value={currentTopic}
                 onChange={(e) => setCurrentTopic(e.target.value)}
@@ -264,55 +241,32 @@ function StudySession() {
                 disabled={!currentSubject || isRunning}
               >
                 <option value="">Select Topic</option>
-                {getFilteredTopics(currentSubject).map(topic => (
-                  <option key={topic._id} value={topic._id}>{topic.name}</option>
-                ))}
+                {getFilteredTopics(currentSubject).map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
               {error}
             </div>
           )}
 
-          {/* Controls */}
           <div className="flex gap-3 justify-center">
             {!isRunning ? (
-              <button
-                onClick={handleStart}
-                className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition flex items-center gap-2"
-              >
-                <Play className="h-5 w-5" />
-                Start
+              <button onClick={handleStart} className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition flex items-center gap-2">
+                <Play className="h-5 w-5" /> Start
               </button>
             ) : (
-              <button
-                onClick={handlePause}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 transition flex items-center gap-2"
-              >
-                <Pause className="h-5 w-5" />
-                Pause
+              <button onClick={handlePause} className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 transition flex items-center gap-2">
+                <Pause className="h-5 w-5" /> Pause
               </button>
             )}
-
-            <button
-              onClick={handleStopAndSave}
-              disabled={time === 0}
-              className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-red-600 hover:to-pink-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Square className="h-5 w-5" />
-              Stop & Save
+            <button onClick={handleStopAndSave} disabled={time === 0} className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-red-600 hover:to-pink-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <Square className="h-5 w-5" /> Stop & Save
             </button>
-
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-600 transition flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Manual Entry
+            <button onClick={() => setShowModal(true)} className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-600 transition flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Manual Entry
             </button>
           </div>
         </div>
@@ -337,8 +291,9 @@ function StudySession() {
                     <div className="flex items-center gap-3 mb-1">
                       <Clock className="h-4 w-4 text-orange-500" />
                       <span className="font-semibold text-gray-800">{session.duration} minutes</span>
+                      {/* ⭐ DATE CHANGE 2: Display as DD/MM/YYYY */}
                       <span className="text-sm text-gray-500">
-                        {new Date(session.date).toLocaleDateString()}
+                        {new Date(session.startTime || session.date).toLocaleDateString('en-GB')}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600">
@@ -350,16 +305,13 @@ function StudySession() {
                     <div className="flex items-center gap-1 mt-1">
                       {[...Array(5)].map((_, i) => (
                         <span key={i} className={i < session.focus ? 'text-yellow-400' : 'text-gray-300'}>
-                          ⭐
+                          ★
                         </span>
                       ))}
                       <span className="text-xs text-gray-500 ml-2">Focus: {session.focus}/5</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(session._id)}
-                    className="text-red-600 hover:text-red-800 p-2"
-                  >
+                  <button onClick={() => handleDelete(session._id)} className="text-red-600 hover:text-red-800 p-2">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -369,77 +321,58 @@ function StudySession() {
         </div>
       </div>
 
-      {/* Manual Entry Modal */}
+      {/* Manual Entry Modal - Fully Restored */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-2xl font-bold mb-4">Manual Session Entry</h2>
+            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
 
             <form onSubmit={handleManualEntry} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subject *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
                 <select
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value, topic: '' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 >
                   <option value="">Select Subject</option>
-                  {subjects.map(subject => (
-                    <option key={subject._id} value={subject._id}>{subject.name}</option>
-                  ))}
+                  {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Topic *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topic *</label>
                 <select
                   value={formData.topic}
                   onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  required
-                  disabled={!formData.subject}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  required disabled={!formData.subject}
                 >
                   <option value="">Select Topic</option>
-                  {getFilteredTopics(formData.subject).map(topic => (
-                    <option key={topic._id} value={topic._id}>{topic.name}</option>
-                  ))}
+                  {getFilteredTopics(formData.subject).map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration (minutes) *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes) *</label>
                 <input
-                  type="number"
-                  value={formData.duration}
+                  type="number" value={formData.duration === 0 ? "" : formData.duration}
                   onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  min="1"
-                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  min="1" max="600" required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Focus Rating (1-5)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Focus Rating (1-5)</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map(rating => (
                     <button
-                      key={rating}
-                      type="button"
+                      key={rating} type="button"
                       onClick={() => setFormData({ ...formData, focus: rating })}
-                      className={`flex-1 py-2 rounded-lg font-semibold transition ${
-                        formData.focus === rating
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition ${formData.focus === rating ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}
                     >
                       {rating}
                     </button>
@@ -448,44 +381,27 @@ function StudySession() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  rows="2"
-                  placeholder="Optional notes"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  rows="2" placeholder="Optional notes"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                 <input
-                  type="date"
-                  value={formData.date}
+                  type="date" value={formData.date} max={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-orange-600 hover:to-pink-600 transition"
-                >
-                  Save Session
-                </button>
+                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                <button type="submit" className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold">Save Session</button>
               </div>
             </form>
           </div>

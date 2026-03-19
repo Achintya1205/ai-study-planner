@@ -171,10 +171,6 @@ function Analytics() {
             <h1 className="text-3xl font-bold mb-2">📊 Analytics Dashboard</h1>
             <p className="text-purple-100">Insights into your study performance</p>
           </div>
-          <button className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Report
-          </button>
         </div>
       </div>
 

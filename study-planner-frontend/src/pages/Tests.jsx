@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, Filter, BarChart2 } from 'lucide-react';
 import { getTests, createTest, updateTest, deleteTest, getSubjects, getTopics } from '../api/study.api';
 
 function Tests() {
@@ -13,13 +13,8 @@ function Tests() {
   const [filterTopic, setFilterTopic] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [formData, setFormData] = useState({
-    subject: '',
-    topic: '',
-    name: '',
-    score: 0,
-    maxScore: 100,
-    date: new Date().toISOString().split('T')[0],
-    notes: ''
+    subject: '', topic: '', name: '', score: 0, maxScore: 100,
+    date: new Date().toISOString().split('T')[0], notes: ''
   });
   const [error, setError] = useState('');
 
@@ -29,9 +24,7 @@ function Tests() {
     try {
       setLoading(true);
       const [testsRes, subjectsRes, topicsRes] = await Promise.all([
-        getTests(),
-        getSubjects(),
-        getTopics()
+        getTests(), getSubjects(), getTopics()
       ]);
       setTests(testsRes.data || []);
       setSubjects(subjectsRes.data || []);
@@ -43,29 +36,21 @@ function Tests() {
     }
   };
 
+  // Logic for the Sidebar Proficiency
+  const subjectStats = subjects.map(sub => {
+    const subTests = tests.filter(t => (t.subject?._id || t.subject) === sub._id);
+    const avg = subTests.length > 0 
+      ? Math.round(subTests.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / subTests.length)
+      : 0;
+    return { name: sub.name, avg, count: subTests.length };
+  }).filter(s => s.count > 0);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (formData.name.trim().length > 50) {
-      setError('Test name must be under 50 characters');
-      return;
-    }
-    if (formData.score > formData.maxScore) {
-      setError('Score cannot be higher than Max Score');
-      return;
-    }
-    if (new Date(formData.date) > new Date()) {
-      setError('Test date cannot be in the future');
-      return;
-    }
-
     try {
-      if (editingTest) {
-        await updateTest(editingTest._id, formData);
-      } else {
-        await createTest(formData);
-      }
+      if (editingTest) await updateTest(editingTest._id, formData);
+      else await createTest(formData);
       await fetchData();
       handleCloseModal();
     } catch (err) {
@@ -107,7 +92,6 @@ function Tests() {
     setError('');
   };
 
-  // Helper for dynamic topic list in the Modal
   const getFilteredTopicsForForm = () => {
     if (formData.subject) {
       return topics.filter(t => (t.subject?._id || t.subject) === formData.subject);
@@ -115,7 +99,6 @@ function Tests() {
     return [];
   };
 
-  // Filtering Logic for the Table
   const filteredTests = tests.filter(test => {
     const matchesSubject = filterSubject === 'all' || (test.subject?._id === filterSubject);
     const matchesTopic = filterTopic === 'all' || (test.topic?._id === filterTopic);
@@ -127,9 +110,8 @@ function Tests() {
     return (b.percentage || 0) - (a.percentage || 0);
   });
 
-  // Calculate Stats
   const totalTests = tests.length;
-  const avgMastery = totalTests > 0 
+  const avgProficiencyTotal = totalTests > 0 
     ? Math.round(tests.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / totalTests) 
     : 0;
   const passedCount = tests.filter(t => (t.percentage || 0) >= 60).length;
@@ -147,105 +129,137 @@ function Tests() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
         
-        {/* ⭐ STATS SECTION RESTORED ⭐ */}
+        {/* Stats Row Restored */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="bg-white rounded-lg shadow p-4 text-center border-b-4 border-indigo-500">
             <p className="text-xs text-gray-400 font-bold uppercase">Total Taken</p>
             <p className="text-2xl font-bold text-gray-800">{totalTests}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <p className="text-xs text-indigo-400 font-bold uppercase">Avg. Mastery</p>
-            <p className="text-2xl font-bold text-indigo-600">{avgMastery}%</p>
+          <div className="bg-white rounded-lg shadow p-4 text-center border-b-4 border-indigo-400">
+            <p className="text-xs text-indigo-400 font-bold uppercase">Avg. Proficiency</p>
+            <p className="text-2xl font-bold text-indigo-600">{avgProficiencyTotal}%</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="bg-white rounded-lg shadow p-4 text-center border-b-4 border-emerald-500">
             <p className="text-xs text-emerald-400 font-bold uppercase">Passed (≥60%)</p>
             <p className="text-2xl font-bold text-emerald-600">{passedCount}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="bg-white rounded-lg shadow p-4 text-center border-b-4 border-red-500">
             <p className="text-xs text-red-400 font-bold uppercase">Failed (&lt;60%)</p>
             <p className="text-2xl font-bold text-red-600">{failedCount}</p>
           </div>
         </div>
 
-        {/* Filters Bar */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            <div>
-              <label className="text-xs font-bold text-gray-400 uppercase">Subject</label>
-              <select 
-                value={filterSubject} 
-                onChange={(e) => { setFilterSubject(e.target.value); setFilterTopic('all'); }} 
-                className="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-2 focus:ring-indigo-100"
-              >
-                <option value="all">All Subjects</option>
-                {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          <div className="lg:col-span-3">
+            {/* Filters Bar Restored */}
+            <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Subject</label>
+                  <select 
+                    value={filterSubject} 
+                    onChange={(e) => { setFilterSubject(e.target.value); setFilterTopic('all'); }} 
+                    className="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="all">All Subjects</option>
+                    {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Topic</label>
+                  <select 
+                    value={filterTopic} 
+                    onChange={(e) => setFilterTopic(e.target.value)} 
+                    className="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="all">All Topics</option>
+                    {topics
+                      .filter(t => filterSubject === 'all' || (t.subject?._id || t.subject) === filterSubject)
+                      .map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Sort</label>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full border p-2 rounded-lg mt-1 outline-none">
+                    <option value="date">Newest First</option>
+                    <option value="score">Highest Score</option>
+                  </select>
+                </div>
+              </div>
+              <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-indigo-700 h-10 transition shadow-lg shadow-indigo-100">
+                <Plus size={18} /> Add Result
+              </button>
             </div>
-            <div>
-              <label className="text-xs font-bold text-gray-400 uppercase">Topic</label>
-              <select 
-                value={filterTopic} 
-                onChange={(e) => setFilterTopic(e.target.value)} 
-                className="w-full border p-2 rounded-lg mt-1 outline-none focus:ring-2 focus:ring-indigo-100"
-              >
-                <option value="all">All Topics</option>
-                {topics
-                  .filter(t => filterSubject === 'all' || (t.subject?._id || t.subject) === filterSubject)
-                  .map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-400 uppercase">Sort</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full border p-2 rounded-lg mt-1 outline-none">
-                <option value="date">Newest First</option>
-                <option value="score">Highest Score</option>
-              </select>
+
+            {/* Main Table with DD/MM/YYYY Format */}
+            <div className="bg-white rounded-xl shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                    <tr>
+                        <th className="px-6 py-4 text-left">Test Name</th>
+                        <th className="px-6 py-4 text-left">Subject / Topic</th>
+                        <th className="px-6 py-4 text-left">Result</th>
+                        <th className="px-6 py-4 text-left">Date</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                    {sortedTests.map((test) => (
+                        <tr key={test._id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4">
+                            <div className="font-bold text-gray-800">{test.name}</div>
+                            <div className="text-xs text-gray-400 truncate max-w-[150px]">{test.notes}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <div className="text-sm text-indigo-600 font-medium">{test.subject?.name}</div>
+                            <div className="text-xs text-gray-400">{test.topic?.name}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <div className="text-sm font-bold text-gray-800">{test.score}/{test.maxScore}</div>
+                            <div className={`text-xs font-black ${test.percentage >= 60 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {test.percentage}% {test.percentage >= 60 ? 'PASS' : 'FAIL'}
+                            </div>
+                        </td>
+                        {/* ⭐ DATE FORMAT: DD/MM/YYYY ⭐ */}
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {new Date(test.date).toLocaleDateString('en-GB')}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                            <button onClick={() => handleEdit(test)} className="text-gray-400 hover:text-indigo-600 mr-3 transition"><Edit2 size={16}/></button>
+                            <button onClick={() => handleDelete(test._id)} className="text-gray-400 hover:text-red-500 transition"><Trash2 size={16}/></button>
+                        </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <button onClick={() => setShowModal(true)} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-indigo-700 transition h-10">
-            <Plus size={18} /> Add Result
-          </button>
-        </div>
 
-        {/* Table Results */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
-                <tr>
-                    <th className="px-6 py-4 text-left">Test Name</th>
-                    <th className="px-6 py-4 text-left">Subject / Topic</th>
-                    <th className="px-6 py-4 text-left">Result</th>
-                    <th className="px-6 py-4 text-left">Date</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                {sortedTests.map((test) => (
-                    <tr key={test._id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4">
-                        <div className="font-bold text-gray-800">{test.name}</div>
-                        <div className="text-xs text-gray-400 truncate max-w-[150px]">{test.notes}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                        <div className="text-sm text-indigo-600 font-medium">{test.subject?.name}</div>
-                        <div className="text-xs text-gray-400">{test.topic?.name}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                        <div className="text-sm font-bold text-gray-800">{test.score}/{test.maxScore}</div>
-                        <div className={`text-xs font-black ${test.percentage >= 60 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {test.percentage}% {test.percentage >= 60 ? 'PASS' : 'FAIL'}
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(test.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-right">
-                        <button onClick={() => handleEdit(test)} className="text-gray-400 hover:text-indigo-600 mr-3 transition"><Edit2 size={16}/></button>
-                        <button onClick={() => handleDelete(test._id)} className="text-gray-400 hover:text-red-500 transition"><Trash2 size={16}/></button>
-                    </td>
-                    </tr>
+          {/* Right Sidebar */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+              <div className="bg-gray-50 p-4 border-b border-gray-100 flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-indigo-600" />
+                <h2 className="font-bold text-gray-800 uppercase text-xs tracking-wider">Subject Proficiency</h2>
+              </div>
+              <div className="p-4 space-y-5">
+                {subjectStats.map((stat, idx) => (
+                  <div key={idx}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-sm font-bold text-gray-700">{stat.name}</span>
+                      <span className="text-xs font-black text-indigo-600">{stat.avg}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="bg-indigo-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${stat.avg}%` }}></div>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">Based on {stat.count} Tests</p>
+                  </div>
                 ))}
-                </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -335,7 +349,7 @@ function Tests() {
 
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 py-2 font-bold text-gray-400">Cancel</button>
-                <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-bold shadow-lg shadow-indigo-100 transition hover:bg-indigo-700">Save Result</button>
+                <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition">Save Result</button>
               </div>
             </form>
           </div>
