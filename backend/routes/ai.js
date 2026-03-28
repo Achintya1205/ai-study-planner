@@ -86,76 +86,47 @@ router.post('/study-plan', protect, async (req, res) => {
         responseMimeType: "application/json",
       }
     });
-    const prompt = `You are an expert study planner AI. Generate a personalized study plan based on the following student data:
+   const prompt = `You are the 'OmniStudy' Strategy Engine. Your goal is to maximize the ROI (Return on Investment) of a student's study time by identifying efficiency gaps.
 
-**Student Context:**
-- Subjects: ${userContext.subjects.join(', ')}
-- Total Topics: ${userContext.totalTopics}
-- Weak Topics (score < 60%): ${userContext.weakTopics.map(t => `${t.name} (${t.score}%, ${t.difficulty})`).join(', ') || 'None'}
-- Goal: ${userContext.goal}
-- Available Study Time: ${userContext.studyHoursPerDay} hours/day
-- Target Timeline: ${userContext.targetDate}
-- Current Study Stats: ${userContext.totalStudyHours}h total, ${userContext.averageFocus}/5 avg focus
+- Subjects & Topics: ${userContext.subjects.join(', ')} (${userContext.totalTopics} total topics)
+- Performance & Weak Areas: ${userContext.weakTopics.map(t => `${t.name} (${t.score}%, ${t.difficulty})`).join(', ')}
+- Historical Effort: ${userContext.totalStudyHours}h spent with ${userContext.averageFocus}/5 focus.
+- Constraints: ${userContext.studyHoursPerDay} hrs/day until ${userContext.targetDate}. Goal: ${userContext.goal}.
 
-**Subject Performance:**
-${subjectPerformance.map(s => `- ${s.name}: ${s.avgScore}% avg, ${s.topicCount} topics, weak: ${s.weakTopics.join(', ') || 'none'}`).join('\n')}
+1. THE 80/20 RULE: Prioritize topics where (Difficulty = High) AND (Score < 50%). 
+2. EFFICIENCY CHECK: If a subject has high study hours but low scores, suggest a "Method Pivot" in the focus field.
+3. COGNITIVE LOAD: Never schedule more than 2 difficult topics in a single day.
+4. VARIETY: Alternate between two different subjects per day to prevent burnout.
 
-**Recent Test Scores:**
-${recentTests.map(t => `- ${t.name}: ${t.score}%`).join('\n') || 'No recent tests'}
-
-Generate a comprehensive study plan in this EXACT JSON format (RETURN ONLY VALID JSON, NO MARKDOWN, NO CODE BLOCKS):
+Generate a plan in this EXACT JSON format (NO markdown, NO code blocks, NO prose):
 {
   "weeklySchedule": [
     {
       "day": "Monday",
       "tasks": [
         {
-          "subject": "Subject name",
-          "topic": "Topic name",
-          "duration": "2 hours",
-          "priority": "High",
-          "focus": "What to focus on"
+          "subject": "Name",
+          "topic": "Name",
+          "duration": "Duration in mins",
+          "priority": "High | Medium | Low",
+          "focus": "The specific cognitive approach (e.g., Active Recall, Pomodoro, Feynman Technique)"
         }
       ]
     }
   ],
-  "recommendations": [
-    "Specific actionable recommendation 1",
-    "Specific actionable recommendation 2",
-    "Specific actionable recommendation 3",
-    "Specific actionable recommendation 4"
-  ],
-  "milestones": [
-    {
-      "week": 1,
-      "goal": "Specific measurable goal",
-      "target": "Success criteria"
-    },
-    {
-      "week": 2,
-      "goal": "Next goal",
-      "target": "Success criteria"
-    }
-  ],
-  "priorityTopics": [
-    {
-      "topic": "Topic name",
-      "subject": "Subject name",
-      "reason": "Why this is priority",
-      "estimatedHours": 5
-    }
-  ]
+  "gapAnalysis": {
+    "identifiedGap": "Explain one specific discrepancy between study time and performance.",
+    "pivotAction": "Specific change in study habit to fix this gap."
+  },
+  "recommendations": ["Actionable advice 1", "Actionable advice 2", "Actionable advice 3", "Actionable advice 4"],
+  "milestones": [{"week": 1, "goal": "Measurable outcome", "target": "Success metric"}],
+  "priorityTopics": [{"topic": "Name", "subject": "Name", "reason": "Logic based on performance delta", "estimatedHours": 5}]
 }
 
 IMPORTANT:
-1. Prioritize weak topics first
-2. Distribute study time across all subjects
-3. Include rest days (recommend lighter study on weekends)
-4. Make recommendations specific and actionable
-5. Set realistic milestones based on available time
-6. Cover all 7 days of the week
-7. Return ONLY valid JSON without markdown formatting or code blocks`;
-
+- Return ONLY valid JSON.
+- If no data exists for a field, provide a logical suggestion based on the Goal.
+- Plan for all 7 days.`;
     // Call Gemini API with proper error handling
     const result = await model.generateContent(prompt);
     const response = result.response;

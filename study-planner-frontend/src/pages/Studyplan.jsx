@@ -195,8 +195,8 @@ ${plan.priorityTopics?.map(p => `• ${p.topic} (${p.subject}) - ${p.estimatedHo
               </button>
 
               <p className="text-center text-sm text-gray-500">
-                ✨ Powered by OpenAI GPT-4 • Analyzing your subjects, topics, and test scores
-              </p>
+                   Powered by Google Gemini AI • Analyzing your subjects, topics, and test scores
+                </p>
             </div>
           </div>
         </div>
