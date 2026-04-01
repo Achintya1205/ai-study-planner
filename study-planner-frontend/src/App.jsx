@@ -8,7 +8,7 @@ import Tests from './pages/Tests.jsx';
 import StudySession from './pages/StudySession.jsx';
 import Analytics from './pages/Analytics.jsx';
 import StudyPlan from './pages/Studyplan.jsx';
-import Navbar from './components/Navbar.jsx';
+import Navbar from './components/navbar.jsx';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
