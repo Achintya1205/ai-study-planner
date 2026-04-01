@@ -22,12 +22,48 @@ function Dashboard() {
     studyHours: 0,
     avgProgress: 0,
     weakTopics: 0,
-    studyStreak: 7,
+    studyStreak: 0, // Changed from hardcoded 7 to 0
     recentTests: []
   });
   const [weakTopics, setWeakTopics] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [error, setError] = useState('');
+
+  // --- NEW STREAK CALCULATION LOGIC ---
+  const calculateStreak = (sessions) => {
+    if (!sessions || sessions.length === 0) return 0;
+
+    // 1. Get unique dates (normalized to YYYY-MM-DD) and sort them descending
+    const uniqueDates = [...new Set(sessions.map(s => 
+      new Date(s.date).toISOString().split('T')[0]
+    ))].sort((a, b) => new Date(b) - new Date(a));
+
+    let streak = 0;
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // 2. If the most recent study session wasn't today or yesterday, streak is dead
+    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) {
+      return 0;
+    }
+
+    // 3. Loop through sorted dates to check for consecutive days
+    let checkDate = new Date(uniqueDates[0]);
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const currentDateInLoop = uniqueDates[i];
+      const expectedDateStr = checkDate.toISOString().split('T')[0];
+
+      if (currentDateInLoop === expectedDateStr) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1); // Move to the previous day
+      } else {
+        break; // Gap found
+      }
+    }
+    return streak;
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -57,19 +93,22 @@ function Dashboard() {
         ? Math.round(subjects.reduce((sum, s) => sum + (s.currentScore || 0), 0) / subjects.length)
         : 0;
 
+      // --- APPLY DYNAMIC STREAK HERE ---
+      const currentStreak = calculateStreak(sessions);
+
       setStats({
         totalSubjects: subjects.length,
         totalTopics: topics.length,
         studyHours: sessionStats.totalHours || 0,
         avgProgress,
         weakTopics: weak.length,
-        studyStreak: 7, // Can be calculated from sessions dates
+        studyStreak: currentStreak, // Dynamic value
         recentTests: tests.slice(0, 5)
       });
 
       setWeakTopics(weak.slice(0, 5));
 
-      // Recent activity
+      // Recent activity mapping
       const activity = [
         ...sessions.slice(0, 3).map(s => ({
           type: 'session',
@@ -93,7 +132,11 @@ function Dashboard() {
     }
   };
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // --- FIXED USER PARSING ---
+  // Checking both 'user' object and falling back to a safer check
+  const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : { username: 'Student' };
+  
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   if (loading) {
@@ -107,16 +150,16 @@ function Dashboard() {
     );
   }
 
+  // ... (Rest of your JSX remains exactly the same as provided)
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white p-8">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.username || 'Student'}! 👋</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.username || user.name || 'Student'}! 👋</h1>
         <p className="text-emerald-50">{today}</p>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4">
-        {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             {error}
@@ -175,9 +218,7 @@ function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -205,7 +246,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Weak Topics */}
             {weakTopics.length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -237,7 +277,6 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
               {recentActivity.length === 0 ? (
@@ -266,19 +305,15 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Study Streak */}
             <div className="bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg shadow-lg p-6 text-white">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold">Study Streak</h3>
                 <Flame className="h-8 w-8" />
               </div>
               <p className="text-4xl font-bold mb-2">{stats.studyStreak} days</p>
-              <p className="text-orange-100 text-sm">Keep it up! 🔥</p>
             </div>
 
-            {/* Recent Test Scores */}
             {stats.recentTests.length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Tests</h3>
@@ -300,7 +335,6 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Progress Summary */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">This Week</h3>
               <div className="space-y-3">

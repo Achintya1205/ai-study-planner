@@ -203,7 +203,9 @@ function Auth({ setIsAuthenticated }) {
 
             {/* Login Form */}
             {tab === "login" && (
-              <form onSubmit={handleLogin} className="space-y-5">
+              <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
+                <input type="text" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
+                <input type="password" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Username
@@ -214,6 +216,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type="text"
+                      name="login_user_x7"
+                      autoComplete="off"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter your username"
@@ -237,6 +243,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
+                      name="login_pass_x7"
+                      autoComplete="new-password"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
@@ -273,7 +283,9 @@ function Auth({ setIsAuthenticated }) {
 
             {/* Register Form */}
             {tab === "register" && (
-              <form onSubmit={handleRegister} className="space-y-5">
+              <form onSubmit={handleRegister} className="space-y-5" autoComplete="off">
+                <input type="text" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
+                <input type="password" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Username
@@ -284,6 +296,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type="text"
+                      name="reg_user_x7"
+                      autoComplete="off"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Choose a username"
@@ -311,6 +327,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type="email"
+                      name="reg_email_x7"
+                      autoComplete="off"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your.email@example.com"
@@ -334,6 +354,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
+                      name="reg_pass_x7"
+                      autoComplete="new-password"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Create a password"
@@ -370,6 +394,10 @@ function Auth({ setIsAuthenticated }) {
                     </div>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
+                      name="reg_confirm_x7"
+                      autoComplete="new-password"
+                      readOnly
+                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm your password"
