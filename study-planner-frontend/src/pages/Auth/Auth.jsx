@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, Sparkles } from "lucide-react"; 
 import { register, login } from '../../api/auth.api.js';
 
 function Auth({ setIsAuthenticated }) {
@@ -111,7 +111,7 @@ function Auth({ setIsAuthenticated }) {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (!validateLoginForm()) {
       return;
@@ -133,6 +133,33 @@ function Auth({ setIsAuthenticated }) {
       }
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestDemo = async () => {
+    setLoading(true);
+    setError("");
+    setErrors({});
+    
+    const guestUser = "Guest";
+    const guestPass = "demopassword";
+
+    setUsername(guestUser);
+    setPassword(guestPass);
+
+    try {
+      const data = await login({ username: guestUser, password: guestPass });
+
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setIsAuthenticated(true);
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError("Guest account is temporarily unavailable.");
     } finally {
       setLoading(false);
     }
@@ -203,82 +230,101 @@ function Auth({ setIsAuthenticated }) {
 
             {/* Login Form */}
             {tab === "login" && (
-              <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
-                <input type="text" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
-                <input type="password" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Username
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
+              <div className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
+                  <input type="text" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
+                  <input type="password" style={{ display: "none" }} readOnly onFocus={(e) => e.currentTarget.removeAttribute("readOnly")} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Username
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="login_user_x7"
+                        autoComplete="off"
+                        readOnly
+                        onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter your username"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
+                          errors.username ? "border-red-500" : "border-gray-300"
+                        }`}
+                      />
                     </div>
-                    <input
-                      type="text"
-                      name="login_user_x7"
-                      autoComplete="off"
-                      readOnly
-                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
-                        errors.username ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
+                    {errors.username && (
+                      <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+                    )}
                   </div>
-                  {errors.username && (
-                    <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="login_pass_x7"
+                        autoComplete="new-password"
+                        readOnly
+                        onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
+                          errors.password ? "border-red-500" : "border-gray-300"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-cyan-600 transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "⏳ Logging in..." : "🚀 Login"}
+                  </button>
+                </form>
+
+                {/* Separator Divider line */}
+                <div className="relative flex items-center justify-center my-4">
+                  <div className="border-t border-gray-200 w-full"></div>
+                  <span className="absolute bg-white px-3 text-xs text-gray-400 uppercase tracking-wider font-semibold">Or</span>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="login_pass_x7"
-                      autoComplete="new-password"
-                      readOnly
-                      onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
-                        errors.password ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                  )}
-                </div>
-
+                {/* 🚀 New UI Button component for Guest Logins */}
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleGuestDemo}
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white py-3 rounded-lg font-semibold hover:from-emerald-600 hover:to-cyan-600 transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-purple-400 text-purple-600 py-3 rounded-lg font-bold hover:bg-purple-50 transition shadow-sm disabled:opacity-50"
                 >
-                  {loading ? "⏳ Logging in..." : "🚀 Login"}
+                  <Sparkles className="h-5 w-5 animate-pulse" />
+                  Explore with Guest Demo
                 </button>
-              </form>
+              </div>
             )}
 
             {/* Register Form */}
@@ -440,7 +486,7 @@ function Auth({ setIsAuthenticated }) {
 
         {/* Footer */}
         <p className="text-center text-white text-sm mt-6 opacity-90">
-          🔐 Your data is secure and encrypted
+           Your data is secure and encrypted
         </p>
       </div>
     </div>
