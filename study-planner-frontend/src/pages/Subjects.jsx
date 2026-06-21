@@ -63,16 +63,7 @@ function Subjects() {
   setLoadingAi(prev => ({ ...prev, [subjectId]: true }));
   
   try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`/api/subjects/${subjectId}/analyze`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    const result = await response.json();
+    const result = await analyzeSubject(subjectId);
     if (result.success) {
       setAiPlans(prev => ({ ...prev, [subjectId]: result.studyPlan }));
     } else {
@@ -80,7 +71,7 @@ function Subjects() {
     }
   } catch (err) {
     console.error('AI Request Error:', err);
-    alert('Server communication error loading AI coach.');
+    alert(err.message || 'Server communication error loading AI coach.');
   } finally {
     setLoadingAi(prev => ({ ...prev, [subjectId]: false }));
   }
