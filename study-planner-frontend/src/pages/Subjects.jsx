@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, BookMarked, TrendingUp, AlertCircle, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, BookMarked, TrendingUp, AlertCircle, Search, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '../api/study.api';
 
 function Subjects() {
@@ -17,6 +18,10 @@ function Subjects() {
     targetScore: '' 
   });
   const [error, setError] = useState('');
+
+  // AI-specific state tracking
+  const [aiPlans, setAiPlans] = useState({}); // Stores plans keyed by subject ID: { [subjectId]: "plan text" }
+  const [loadingAi, setLoadingAi] = useState({}); // Stores loading states keyed by subject ID: { [subjectId]: true/false }
 
   const colors = [
     { name: 'emerald', class: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-600' },
@@ -41,6 +46,43 @@ function Subjects() {
       setError(err.message || 'Failed to load subjects');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Triggers backend Gemini Engine
+  const handleAnalyzeSubject = async (subjectId) => {
+    const selectedSubject = subjects.find(s => s._id === subjectId);
+    const progress = selectedSubject?.currentScore || 0;
+    const target = selectedSubject?.targetScore || 80;
+
+    if (progress >= target) {
+      alert(`🎉 Celebration! You have already achieved or surpassed your goal of ${target}% for this subject. No emergency roadmap needed!`);
+      return; 
+    }
+    setLoadingAi(prev => ({ ...prev, [subjectId]: true }));
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Dynamic network fetch matching backend endpoints
+      const response = await fetch(`http://localhost:5000/api/subjects/${subjectId}/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAiPlans(prev => ({ ...prev, [subjectId]: result.studyPlan }));
+      } else {
+        alert(result.message || 'Failed to generate study roadmap.');
+      }
+    } catch (err) {
+      console.error('AI Request Error:', err);
+      alert('Server communication error loading AI coach.');
+    } finally {
+      setLoadingAi(prev => ({ ...prev, [subjectId]: false }));
     }
   };
 
@@ -211,33 +253,63 @@ function Subjects() {
             const progress = subject.currentScore || 0;
             const target = subject.targetScore || '';
             
-            // Logic for Visual Feedback
             const isGoalHit = progress >= target;
             const barFillColor = isGoalHit ? 'bg-emerald-500' : 'bg-orange-500';
+            
+            const isSubjectAiLoading = loadingAi[subject._id] || false;
+            const contextPlan = aiPlans[subject._id] || '';
 
             return (
-              <div key={subject._id} className="bg-white rounded-lg shadow hover:shadow-lg transition">
-                <div className={`${colorClasses.class} p-4 rounded-t-lg`}>
-                  <h3 className="text-xl font-bold text-white mb-1">{subject.name}</h3>
-                  <p className="text-white text-opacity-90 text-sm">{subject.description || 'No description'}</p>
-                </div>
-                <div className="p-4">
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 font-medium">Mastery: {progress}%</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${isGoalHit ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                        Goal: {target}%
-                      </span>
+              <div key={subject._id} className="bg-white rounded-lg shadow hover:shadow-lg transition flex flex-col justify-between">
+                <div>
+                  <div className={`${colorClasses.class} p-4 rounded-t-lg flex justify-between items-start`}>
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">{subject.name}</h3>
+                      <p className="text-white text-opacity-90 text-sm">{subject.description || 'No description'}</p>
                     </div>
-                    {/* Progress Bar Container */}
-                    <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                      {/* Actual Progress Fill */}
-                      <div
-                        className={`${barFillColor} h-2.5 rounded-full transition-all duration-500`}
-                        style={{ width: `${progress}%` }}
-                      ></div>
+                    {/* Floating Action AI trigger */}
+                    <button
+                      onClick={() => handleAnalyzeSubject(subject._id)}
+                      disabled={isSubjectAiLoading}
+                      title="Analyze with AI Coach"
+                      className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition disabled:opacity-50"
+                    >
+                      <Sparkles className={`h-5 w-5 ${isSubjectAiLoading ? 'animate-pulse' : ''}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 font-medium">Mastery: {progress}%</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${isGoalHit ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                          Goal: {target}%
+                        </span>
+                      </div>
+                      <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className={`${barFillColor} h-2.5 rounded-full transition-all duration-500`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="p-4 pt-0">
+                  {/* Embedded Dynamic AI Display Container */}
+                  {contextPlan && (
+                    <div className="mb-4 p-4 bg-slate-900 rounded-lg text-slate-200 text-xs border border-purple-500/30 max-h-48 overflow-y-auto shadow-inner">
+                      <div className="flex items-center gap-1.5 border-b border-slate-700 pb-1.5 mb-2 font-semibold text-purple-400">
+                        <span>🧠</span>
+                        <span>3-Day AI Recovery Roadmap</span>
+                      </div>
+                      <div className="prose prose-invert max-w-none text-slate-300 space-y-1 leading-relaxed">
+                        <ReactMarkdown>{contextPlan}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate(`/topics?subject=${subject._id}`)}

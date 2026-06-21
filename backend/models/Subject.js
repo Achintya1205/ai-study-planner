@@ -6,6 +6,15 @@ const subjectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  topics: [{
+    name: { type: String, required: true },
+    score: { type: Number, default: 0 },
+    weight: { 
+      type: Number, 
+      enum: [1, 2, 3], 
+      default: 2 
+    }
+  }],
   name: {
     type: String,
     required: [true, 'Subject name is required'],
@@ -38,8 +47,7 @@ const subjectSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-subjectSchema.index({ user: 1, name: 1 });
+subjectSchema.index({ user: 1, name: 1 }, { unique: true });
 
 const Subject = mongoose.model('Subject', subjectSchema);
 
