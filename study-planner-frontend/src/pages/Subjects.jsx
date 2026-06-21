@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, BookMarked, TrendingUp, AlertCircle, Search, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { getSubjects, createSubject, updateSubject, deleteSubject } from '../api/study.api';
+import { getSubjects, createSubject, updateSubject, deleteSubject, analyzeSubject } from '../api/study.api';
 
 function Subjects() {
   const navigate = useNavigate();
@@ -51,40 +51,40 @@ function Subjects() {
 
   // Triggers backend Gemini Engine
   const handleAnalyzeSubject = async (subjectId) => {
-    const selectedSubject = subjects.find(s => s._id === subjectId);
-    const progress = selectedSubject?.currentScore || 0;
-    const target = selectedSubject?.targetScore || 80;
+  const selectedSubject = subjects.find(s => s._id === subjectId);
+  const progress = selectedSubject?.currentScore || 0;
+  const target = selectedSubject?.targetScore || 80;
 
-    if (progress >= target) {
-      alert(`🎉 Celebration! You have already achieved or surpassed your goal of ${target}% for this subject. No emergency roadmap needed!`);
-      return; 
-    }
-    setLoadingAi(prev => ({ ...prev, [subjectId]: true }));
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Dynamic network fetch matching backend endpoints
-      const response = await fetch(`http://localhost:5000/api/subjects/${subjectId}/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setAiPlans(prev => ({ ...prev, [subjectId]: result.studyPlan }));
-      } else {
-        alert(result.message || 'Failed to generate study roadmap.');
+  if (progress >= target) {
+    alert(`🎉 Celebration! You have already achieved or surpassed your goal of ${target}% for this subject. No emergency roadmap needed!`);
+    return; 
+  }
+  
+  setLoadingAi(prev => ({ ...prev, [subjectId]: true }));
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/subjects/${subjectId}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
-    } catch (err) {
-      console.error('AI Request Error:', err);
-      alert('Server communication error loading AI coach.');
-    } finally {
-      setLoadingAi(prev => ({ ...prev, [subjectId]: false }));
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      setAiPlans(prev => ({ ...prev, [subjectId]: result.studyPlan }));
+    } else {
+      alert(result.message || 'Failed to generate study roadmap.');
     }
-  };
+  } catch (err) {
+    console.error('AI Request Error:', err);
+    alert('Server communication error loading AI coach.');
+  } finally {
+    setLoadingAi(prev => ({ ...prev, [subjectId]: false }));
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();

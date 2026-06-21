@@ -47,6 +47,22 @@ export const deleteSubject = async (id) => {
   }
 };
 
+export const analyzeSubject = async (subjectId) => {
+  const response = await fetch(`/api/subjects/${subjectId}/analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}` 
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to generate AI analysis');
+  }
+  
+  return await response.json();
+};
 // ==================== TOPICS ====================
 
 export const getTopics = async (subjectId = null) => {
