@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Auth from './pages/Auth/Auth.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -9,11 +9,47 @@ import StudySession from './pages/StudySession.jsx';
 import Analytics from './pages/Analytics.jsx';
 import StudyPlan from './pages/Studyplan.jsx';
 import Navbar from './components/navbar.jsx';
+import { getCurrentUser } from './api/auth.api';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    Boolean(localStorage.getItem("token"))
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setAuthLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getCurrentUser();
+        if (data.success) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    verifySession();
+  }, []);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Checking session...</p>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

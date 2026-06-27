@@ -18,10 +18,10 @@ export const login = async (credentials) => {
     throw error.response?.data || { message: 'Login failed' };
   }
 };
-
+ 
 export const getCurrentUser = async () => {
   try {
-    const response = await api.get('/auth/me');
+    const response = await api.get('/auth/me', { skipAuthRedirect: true });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to get user' };
