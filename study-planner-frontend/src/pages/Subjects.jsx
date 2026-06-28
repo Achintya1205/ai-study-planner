@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, BookMarked, TrendingUp, AlertCircle, Search, Spark
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getSubjects, createSubject, updateSubject, deleteSubject, analyzeSubject } from '../api/study.api';
+import { APP_THEMES } from '../constants/colors';
 
 function Subjects() {
   const navigate = useNavigate();
@@ -22,16 +23,6 @@ function Subjects() {
   // AI-specific state tracking
   const [aiPlans, setAiPlans] = useState({}); // Stores plans keyed by subject ID: { [subjectId]: "plan text" }
   const [loadingAi, setLoadingAi] = useState({}); // Stores loading states keyed by subject ID: { [subjectId]: true/false }
-
-  const colors = [
-    { name: 'emerald', class: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-600' },
-    { name: 'purple', class: 'bg-purple-500', light: 'bg-purple-50', text: 'text-purple-600' },
-    { name: 'cyan', class: 'bg-cyan-500', light: 'bg-cyan-50', text: 'text-cyan-600' },
-    { name: 'orange', class: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-600' },
-    { name: 'indigo', class: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-600' },
-    { name: 'pink', class: 'bg-pink-500', light: 'bg-pink-50', text: 'text-pink-600' }
-  ];
-
   useEffect(() => {
     fetchSubjects();
   }, []);
@@ -135,10 +126,6 @@ function Subjects() {
     setError('');
   };
 
-  const getColorClasses = (colorName) => {
-    return colors.find(c => c.name === colorName) || colors[0];
-  };
-
   const filteredSubjects = subjects.filter(subject =>
     subject.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -231,16 +218,10 @@ function Subjects() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
-          </div>
-        )}
-
         {/* Subjects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSubjects.map((subject) => {
-            const colorClasses = getColorClasses(subject.color);
+            const theme = APP_THEMES[subject.color] || APP_THEMES.gray;
             const progress = subject.currentScore || 0;
             const target = subject.targetScore || '';
             
@@ -253,7 +234,7 @@ function Subjects() {
             return (
               <div key={subject._id} className="bg-white rounded-lg shadow hover:shadow-lg transition flex flex-col justify-between">
                 <div>
-                  <div className={`${colorClasses.class} p-4 rounded-t-lg flex justify-between items-start`}>
+                  <div className={`${theme.bg} p-4 rounded-t-lg flex justify-between items-start`}>
                     <div>
                       <h3 className="text-xl font-bold text-white mb-1">{subject.name}</h3>
                       <p className="text-white text-opacity-90 text-sm">{subject.description || 'No description'}</p>
@@ -304,7 +285,7 @@ function Subjects() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate(`/topics?subject=${subject._id}`)}
-                      className={`flex-1 ${colorClasses.light} ${colorClasses.text} px-4 py-2 rounded-lg font-semibold hover:opacity-80 transition`}
+                      className={`flex-1 ${theme.light} ${theme.text} px-4 py-2 rounded-lg font-semibold hover:opacity-80 transition`}
                     >
                       View Topics
                     </button>
@@ -329,11 +310,18 @@ function Subjects() {
             <h2 className="text-2xl font-bold mb-4">{editingSubject ? 'Edit Subject' : 'Add New Subject'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                    {error}
+                  </div>
+                )}
+
                 <label className="block text-sm font-medium text-gray-700 mb-1">Subject Name *</label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => {setFormData({ ...formData, name: e.target.value });
+                                      if (error) setError('');}}              
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   placeholder="e.g., Mathematics"
                 />
@@ -342,7 +330,8 @@ function Subjects() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => {setFormData({ ...formData, description: e.target.value })
+                                      if (error) setError('');}}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   rows="3"
                   placeholder="Brief description"
@@ -351,16 +340,14 @@ function Subjects() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Color Theme</label>
                 <div className="grid grid-cols-6 gap-2">
-                  {colors.map((color) => (
+                  {Object.entries(APP_THEMES).filter(([name]) => name !== 'gray').map(([name, theme]) => (
                     <button
-                      key={color.name}
+                      key={name}
                       type="button"
-                      onClick={() => setFormData({ ...formData, color: color.name })}
-                      className={`${color.class} h-10 rounded-lg transition ${
-                        formData.color === color.name ? 'ring-4 ring-offset-2 ring-gray-400' : 'hover:opacity-80'
-                      }`}
+                      onClick={() => setFormData({ ...formData, color: name })}
+                      className={`${theme.bg} h-10 rounded-lg border-2 ${formData.color === name ? 'ring-4 ring-offset-2 ring-gray-400' : 'border-transparent'}`}
                     />
-                  ))}
+                    ))}
                 </div>
               </div>
               <div>

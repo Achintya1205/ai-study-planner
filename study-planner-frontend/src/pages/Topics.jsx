@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Filter } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { getTopics, createTopic, updateTopic, deleteTopic, getSubjects } from '../api/study.api';
+import { APP_THEMES, DIFFICULTY_COLORS } from '../constants/colors';
 
 function Topics() {
   const [searchParams] = useSearchParams();
@@ -21,23 +22,6 @@ function Topics() {
     score: 0
   });
   const [error, setError] = useState('');
-
-  const difficultyColors = {
-    easy: { bg: 'bg-green-100', text: 'text-green-700', badge: 'Easy' },
-    medium: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'Medium' },
-    hard: { bg: 'bg-red-100', text: 'text-red-700', badge: 'Hard' }
-  };
-
-  const subjectThemes = {
-    purple: { border: 'border-t-purple-500', text: 'text-purple-600' },
-    blue: { border: 'border-t-blue-500', text: 'text-blue-600' },
-    emerald: { border: 'border-t-emerald-500', text: 'text-emerald-600' },
-    pink: { border: 'border-t-pink-500', text: 'text-pink-600' },
-    orange: { border: 'border-t-orange-500', text: 'text-orange-600' },
-    red: { border: 'border-t-red-500', text: 'text-red-600' },
-    cyan: { border: 'border-t-cyan-500', text: 'text-cyan-600' },
-    gray: { border: 'border-t-gray-400', text: 'text-gray-500' }
-  };
 
   useEffect(() => { fetchData(); }, []);
 
@@ -96,13 +80,12 @@ function Topics() {
     setFormData({ subject: '', name: '', description: '', score: 0 });
   };
 
-  // 🔍 Updated Filtering and Sorting Logic
+  // Updated Filtering and Sorting
   const filteredTopics = topics
     .filter(topic => {
       const matchesSubject = filterSubject === 'all' || (topic.subject?._id === filterSubject);
-      
       // Strong = Easy (>= 80)
-      // Weak = Medium or Hard (< 80)
+      // Weak = Medium or Hard (< 80)    
       const isEasy = topic.difficulty === 'easy';
       const matchesStatus = filterStatus === 'all' || 
         (filterStatus === 'strong' && isEasy) || 
@@ -171,8 +154,8 @@ function Topics() {
         {/* Topics List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTopics.map((topic) => {
-            const diff = difficultyColors[topic.difficulty] || difficultyColors.medium;
-            const theme = subjectThemes[topic.subject?.color] || subjectThemes.gray;
+            const diff = DIFFICULTY_COLORS[topic.difficulty] || DIFFICULTY_COLORS.medium;
+            const theme = APP_THEMES[topic.subject?.color] || APP_THEMES.gray;
 
             return (
               <div 
@@ -254,8 +237,8 @@ function Topics() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Score (%)</label>
                 <input 
                   type="number" 
-                  // 🛠️ FIX FOR THE "021" BUG:
-                  // We parse the value as an integer. If the input is empty, we set it to 0.
+                  
+                  // parse the value as an integer. If the input is empty, set it to 0.
                   value={formData.score === 0 ? "" : formData.score} 
                   placeholder="0"
                   onChange={(e) => setFormData({...formData, score: parseInt(e.target.value) || 0})}

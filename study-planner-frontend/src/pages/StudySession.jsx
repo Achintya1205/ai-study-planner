@@ -24,7 +24,6 @@ function StudySession() {
   const [error, setError] = useState('');
   const intervalRef = useRef(null);
 
-  // 🛑 Navigation Alert logic
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isRunning || time > 0) {
@@ -103,7 +102,6 @@ function StudySession() {
         return;
       }
 
-      // ⭐ DATE CHANGE 1: Use ISO string for the backend to avoid 'Invalid Date'
       await createSession({
         subject: currentSubject,
         topic: currentTopic,
@@ -291,7 +289,7 @@ function StudySession() {
                     <div className="flex items-center gap-3 mb-1">
                       <Clock className="h-4 w-4 text-orange-500" />
                       <span className="font-semibold text-gray-800">{session.duration} minutes</span>
-                      {/* ⭐ DATE CHANGE 2: Display as DD/MM/YYYY */}
+          
                       <span className="text-sm text-gray-500">
                         {new Date(session.startTime || session.date).toLocaleDateString('en-GB')}
                       </span>
@@ -321,7 +319,7 @@ function StudySession() {
         </div>
       </div>
 
-      {/* Manual Entry Modal - Fully Restored */}
+      {/* Manual Entry Modal*/}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">

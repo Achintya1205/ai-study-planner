@@ -314,7 +314,6 @@ function Auth({ setIsAuthenticated }) {
                   <span className="absolute bg-white px-3 text-xs text-gray-400 uppercase tracking-wider font-semibold">Or</span>
                 </div>
 
-                {/* 🚀 New UI Button component for Guest Logins */}
                 <button
                   type="button"
                   onClick={handleGuestDemo}

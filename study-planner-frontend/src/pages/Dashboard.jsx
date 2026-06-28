@@ -22,18 +22,16 @@ function Dashboard() {
     studyHours: 0,
     avgProgress: 0,
     weakTopics: 0,
-    studyStreak: 0, // Changed from hardcoded 7 to 0
+    studyStreak: 0, 
     recentTests: []
   });
   const [weakTopics, setWeakTopics] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [error, setError] = useState('');
 
-  // --- NEW STREAK CALCULATION LOGIC ---
   const calculateStreak = (sessions) => {
     if (!sessions || sessions.length === 0) return 0;
 
-    // 1. Get unique dates (normalized to YYYY-MM-DD) and sort them descending
     const uniqueDates = [...new Set(sessions.map(s => 
       new Date(s.date).toISOString().split('T')[0]
     ))].sort((a, b) => new Date(b) - new Date(a));
@@ -44,12 +42,10 @@ function Dashboard() {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    // 2. If the most recent study session wasn't today or yesterday, streak is dead
     if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) {
       return 0;
     }
 
-    // 3. Loop through sorted dates to check for consecutive days
     let checkDate = new Date(uniqueDates[0]);
     for (let i = 0; i < uniqueDates.length; i++) {
       const currentDateInLoop = uniqueDates[i];
@@ -59,7 +55,7 @@ function Dashboard() {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1); // Move to the previous day
       } else {
-        break; // Gap found
+        break; 
       }
     }
     return streak;
@@ -92,8 +88,6 @@ function Dashboard() {
       const avgProgress = subjects.length > 0
         ? Math.round(subjects.reduce((sum, s) => sum + (s.currentScore || 0), 0) / subjects.length)
         : 0;
-
-      // --- APPLY DYNAMIC STREAK HERE ---
       const currentStreak = calculateStreak(sessions);
 
       setStats({
@@ -132,8 +126,6 @@ function Dashboard() {
     }
   };
 
-  // --- FIXED USER PARSING ---
-  // Checking both 'user' object and falling back to a safer check
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : { username: 'Student' };
   
@@ -150,7 +142,6 @@ function Dashboard() {
     );
   }
 
-  // ... (Rest of your JSX remains exactly the same as provided)
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
