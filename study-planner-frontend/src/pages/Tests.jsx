@@ -222,7 +222,7 @@ function Tests() {
                             {test.percentage}% {test.percentage >= 60 ? 'PASS' : 'FAIL'}
                             </div>
                         </td>
-                        {/* ⭐ DATE FORMAT: DD/MM/YYYY ⭐ */}
+                        {/* DATE FORMAT: DD/MM/YYYY  */}
                         <td className="px-6 py-4 text-sm text-gray-500">
                           {new Date(test.date).toLocaleDateString('en-GB')}
                         </td>
@@ -276,6 +276,7 @@ function Tests() {
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Subject</label>
                   <select 
+                    disabled={editingTest}
                     value={formData.subject} 
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value, topic: '' })}
                     className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500" required
@@ -286,10 +287,11 @@ function Tests() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Topic</label>
-                  <select 
+                  <select
+                    disabled={!!editingTest || !formData.subject}
                     value={formData.topic} 
                     onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                    className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500" required disabled={!formData.subject}
+                    className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500" required 
                   >
                     <option value="">Select</option>
                     {getFilteredTopicsForForm().map(t => <option key={t._id} value={t._id}>{t.name}</option>)}

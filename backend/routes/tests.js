@@ -37,38 +37,6 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/tests/:id
-// @desc    Get single test
-// @access  Private
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const test = await Test.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    })
-      .populate('subject', 'name color')
-      .populate('topic', 'name');
-
-    if (!test) {
-      return res.status(404).json({
-        success: false,
-        message: 'Test not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: test
-    });
-  } catch (error) {
-    console.error('Get test error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
-
 // @route   POST /api/tests
 // @desc    Create new test
 // @access  Private
@@ -85,15 +53,16 @@ router.post('/', protect, async (req, res) => {
     }
 
     // Verify subject and topic belong to user
-    const subjectExists = await Subject.findOne({
-      _id: subject,
-      user: req.user._id
-    });
-
-    const topicExists = await Topic.findOne({
-      _id: topic,
-      user: req.user._id
-    });
+    const [subjectExists, topicExists] = await Promise.all([
+      Subject.findOne({
+          _id: subject,
+          user: req.user._id
+      }),
+      Topic.findOne({
+          _id: topic,
+          user: req.user._id
+      })
+    ]);
 
     if (!subjectExists || !topicExists) {
       return res.status(404).json({
@@ -157,10 +126,14 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     const { name, score, maxScore, date, notes } = req.body;
+    let percentage;
 
+    if (score !== undefined && maxScore > 0) {
+      percentage = Math.round((score / maxScore) * 100);
+    }
     test = await Test.findByIdAndUpdate(
       req.params.id,
-      { name, score, maxScore, date, notes },
+      { name, score, maxScore, percentage, date, notes },
       { new: true, runValidators: true }
     )
       .populate('subject', 'name color')

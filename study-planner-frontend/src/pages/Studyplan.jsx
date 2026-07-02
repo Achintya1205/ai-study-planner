@@ -45,38 +45,38 @@ function StudyPlan() {
     if (!plan) return;
 
     const content = `
-AI STUDY PLAN
-Generated: ${new Date(plan.generatedAt).toLocaleDateString()}
-Goal: ${plan.userContext?.goal}
-Study Hours: ${plan.userContext?.studyHoursPerDay} hours/day
+      AI STUDY PLAN
+      Generated: ${new Date(plan.generatedAt).toLocaleDateString()}
+      Goal: ${plan.userContext?.goal}
+      Study Hours: ${plan.userContext?.studyHoursPerDay} hours/day
 
-WEEKLY SCHEDULE
-${plan.weeklySchedule?.map(day => `
-${day.day}:
-${day.tasks?.map(task => `  • ${task.subject} - ${task.topic} (${task.duration}) - ${task.priority} Priority
-    Focus: ${task.focus}`).join('\n')}
-`).join('\n')}
+      WEEKLY SCHEDULE
+      ${plan.weeklySchedule?.map(day => `
+      ${day.day}:
+      ${day.tasks?.map(task => `  • ${task.subject} - ${task.topic} (${task.duration}) - ${task.priority} Priority
+      Focus: ${task.focus}`).join('\n')}
+      `).join('\n')}
 
-RECOMMENDATIONS
-${plan.recommendations?.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+      RECOMMENDATIONS
+      ${plan.recommendations?.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
 
-MILESTONES
-${plan.milestones?.map(m => `Week ${m.week}: ${m.goal}
-   Target: ${m.target}`).join('\n\n')}
+      MILESTONES
+      ${plan.milestones?.map(m => `Week ${m.week}: ${m.goal}
+      Target: ${m.target}`).join('\n\n')}
 
-PRIORITY TOPICS
-${plan.priorityTopics?.map(p => `• ${p.topic} (${p.subject}) - ${p.estimatedHours}h
-   Reason: ${p.reason}`).join('\n\n')}
-    `.trim();
+      PRIORITY TOPICS
+      ${plan.priorityTopics?.map(p => `• ${p.topic} (${p.subject}) - ${p.estimatedHours}h
+      Reason: ${p.reason}`).join('\n\n')}
+      `.trim();
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `AI-Study-Plan-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AI-Study-Plan-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
 
   if (showConfig) {
     return (

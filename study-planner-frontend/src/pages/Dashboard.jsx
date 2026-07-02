@@ -99,8 +99,8 @@ function Dashboard() {
         studyStreak: currentStreak, // Dynamic value
         recentTests: tests.slice(0, 5)
       });
-
-      setWeakTopics(weak.slice(0, 5));
+      const sortedWeak = weak.sort((a, b) => (a.score || 0) - (b.score || 0));
+      setWeakTopics(sortedWeak.slice(0, 5));
 
       // Recent activity mapping
       const activity = [

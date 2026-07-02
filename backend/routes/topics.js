@@ -3,11 +3,12 @@ const router = express.Router();
 const Topic = require('../models/Topic');
 const Subject = require('../models/Subject');
 const { protect } = require('../middleware/auth');
+const Test = require('../models/Test');
+const StudySession = require('../models/StudySession');
 
-// --- NEW HELPER: The "Bridge" between Topics and Subjects ---
 const updateSubjectProgress = async (subjectId, userId) => {
   try {
-    // 1. Get all topics for this subject
+
     const topics = await Topic.find({ subject: subjectId, user: userId });
     
     if (topics.length === 0) {
@@ -15,11 +16,10 @@ const updateSubjectProgress = async (subjectId, userId) => {
       return;
     }
 
-    // 2. Calculate the average score (The Factor that moves the bar)
+    // Calculate the average score 
     const totalScore = topics.reduce((sum, topic) => sum + (topic.score || 0), 0);
     const averageScore = Math.round(totalScore / topics.length);
 
-    // 3. Sync to Subject model
     await Subject.findByIdAndUpdate(subjectId, { currentScore: averageScore });
   } catch (error) {
     console.error('Progress sync failed:', error);
@@ -122,8 +122,15 @@ router.delete('/:id', protect, async (req, res) => {
     if (!topic) return res.status(404).json({ success: false, message: 'Topic not found' });
 
     const subjectId = topic.subject;
+    await Promise.all([
+      Test.deleteMany({ topic: req.params.id }),
+      StudySession.deleteMany({ topic: req.params.id })
+    ]);
+
     await topic.deleteOne();
 
+    // Sync the subject's score
+    await updateSubjectProgress(subjectId, req.user._id);
     // TRIGGER: Sync progress to Subject after deletion
     await updateSubjectProgress(subjectId, req.user._id);
 

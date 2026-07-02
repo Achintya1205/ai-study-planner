@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, BookMarked, TrendingUp, AlertCircle, Search, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { AlertCircle, BookMarked, Edit2, Plus, Search, Sparkles, Trash2, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { getSubjects, createSubject, updateSubject, deleteSubject, analyzeSubject } from '../api/study.api';
+import { useNavigate } from 'react-router-dom';
+import { analyzeSubject, createSubject, deleteSubject, getSubjects, updateSubject } from '../api/study.api';
 import { APP_THEMES } from '../constants/colors';
 
 function Subjects() {
@@ -31,6 +31,7 @@ function Subjects() {
     try {
       setLoading(true);
       const response = await getSubjects();
+
       setSubjects(response.data || []);
       setError('');
     } catch (err) {
@@ -130,7 +131,10 @@ function Subjects() {
     subject.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalTopics = subjects.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
+  const totalTopics = subjects.reduce(
+    (sum, s) => sum + (s.topicCount || 0),
+    0
+  );
   const avgProgress = subjects.length > 0
     ? Math.round(subjects.reduce((sum, s) => sum + (s.currentScore || 0), 0) / subjects.length)
     : 0;

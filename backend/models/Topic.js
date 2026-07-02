@@ -50,9 +50,8 @@ topicSchema.pre('save', function(next) {
   next();
 });
 
-// Index for faster queries
+
 topicSchema.index({ user: 1, subject: 1 });
-topicSchema.index({ user: 1, isWeak: 1 });
 
 const Topic = mongoose.model('Topic', topicSchema);
 

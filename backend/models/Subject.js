@@ -6,15 +6,6 @@ const subjectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  topics: [{
-    name: { type: String, required: true },
-    score: { type: Number, default: 0 },
-    weight: { 
-      type: Number, 
-      enum: [1, 2, 3], 
-      default: 2 
-    }
-  }],
   name: {
     type: String,
     required: [true, 'Subject name is required'],

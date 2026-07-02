@@ -81,12 +81,12 @@ router.post('/study-plan', protect, async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
       }
     });
-   const prompt = `You are the 'OmniStudy' Strategy Engine. Your goal is to maximize the ROI (Return on Investment) of a student's study time by identifying efficiency gaps.
+  const prompt = `You are the 'OmniStudy' Strategy Engine. Your goal is to maximize the ROI (Return on Investment) of a student's study time by identifying efficiency gaps.
 
 - Subjects & Topics: ${userContext.subjects.join(', ')} (${userContext.totalTopics} total topics)
 - Performance & Weak Areas: ${userContext.weakTopics.map(t => `${t.name} (${t.score}%, ${t.difficulty})`).join(', ')}
@@ -109,7 +109,7 @@ Generate a plan in this EXACT JSON format (NO markdown, NO code blocks, NO prose
           "topic": "Name",
           "duration": "Duration in mins",
           "priority": "High | Medium | Low",
-          "focus": "The specific cognitive approach (e.g., Active Recall, Pomodoro, Feynman Technique)"
+          "focus": "The specific cognitive approach (e.g., Active Recall, Pomodoro, Feynman Technique, etc)"
         }
       ]
     }
@@ -132,7 +132,7 @@ IMPORTANT:
     const response = result.response;
     let aiResponse = response.text();
 
-    // Clean up response (remove markdown code blocks if present)
+    // Clean up response
     aiResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     // Parse AI response

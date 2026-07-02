@@ -13,6 +13,7 @@ function StudySession() {
   const [showModal, setShowModal] = useState(false);
   const [currentSubject, setCurrentSubject] = useState('');
   const [currentTopic, setCurrentTopic] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [formData, setFormData] = useState({
     subject: '',
     topic: '',
@@ -50,11 +51,11 @@ function StudySession() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning]);
 
-  const fetchData = async () => {
+  const fetchData = async (filterDate = '') => {
     try {
       setLoading(true);
       const [sessionsRes, statsRes, subjectsRes, topicsRes] = await Promise.all([
-        getSessions(),
+        getSessions(filterDate),
         getSessionStats(),
         getSubjects(),
         getTopics()
@@ -273,6 +274,17 @@ function StudySession() {
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800">Recent Sessions</h2>
+            <input 
+              type="date"
+              value={dateFilter}
+              className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+              onChange={(e) => {
+              e.preventDefault();
+              const selectedDate = e.target.value;
+              setDateFilter(selectedDate); 
+              fetchData(selectedDate) 
+            }}
+            />
           </div>
 
           {sessions.length === 0 ? (

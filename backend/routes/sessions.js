@@ -83,38 +83,6 @@ router.get('/stats', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/sessions/:id
-// @desc    Get single session
-// @access  Private
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const session = await StudySession.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    })
-      .populate('subject', 'name color')
-      .populate('topic', 'name');
-
-    if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: 'Session not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: session
-    });
-  } catch (error) {
-    console.error('Get session error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
-
 // @route   POST /api/sessions
 // @desc    Create new study session
 // @access  Private
@@ -131,15 +99,16 @@ router.post('/', protect, async (req, res) => {
     }
 
     // Verify subject and topic belong to user
-    const subjectExists = await Subject.findOne({
-      _id: subject,
-      user: req.user._id
-    });
-
-    const topicExists = await Topic.findOne({
-      _id: topic,
-      user: req.user._id
-    });
+    const [subjectExists, topicExists] = await Promise.all([
+      Subject.findOne({
+        _id: subject,
+        user: req.user._id
+      }),
+      Topic.findOne({
+        _id: topic,
+        user: req.user._id
+      })
+    ]);
 
     if (!subjectExists || !topicExists) {
       return res.status(404).json({
@@ -168,56 +137,6 @@ router.post('/', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Create session error:', error);
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', ')
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
-
-// @route   PUT /api/sessions/:id
-// @desc    Update study session
-// @access  Private
-router.put('/:id', protect, async (req, res) => {
-  try {
-    let session = await StudySession.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    });
-
-    if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: 'Session not found'
-      });
-    }
-
-    const { duration, date, notes, focus } = req.body;
-
-    session = await StudySession.findByIdAndUpdate(
-      req.params.id,
-      { duration, date, notes, focus },
-      { new: true, runValidators: true }
-    )
-      .populate('subject', 'name color')
-      .populate('topic', 'name');
-
-    res.json({
-      success: true,
-      message: 'Session updated successfully',
-      data: session
-    });
-  } catch (error) {
-    console.error('Update session error:', error);
 
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);

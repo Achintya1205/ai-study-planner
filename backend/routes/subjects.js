@@ -4,70 +4,41 @@ const Subject = require('../models/Subject');
 const { protect } = require('../middleware/auth');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// All routes require authentication
-
-const calculateWeightedScore = (topics) => {
-  if (!topics || topics.length === 0) return 0;
-
-  let totalWeight = 0;
-  let weightedElementsSum = 0;
-
-  topics.forEach(topic => {
-    const score = topic.score || 0;
-    const weight = topic.weight || 2; // Defaults to medium (2) if missing
-
-    weightedElementsSum += (score * weight);
-    totalWeight += weight;
-  });
-
-  return totalWeight > 0 ? Math.round(weightedElementsSum / totalWeight) : 0;
-};
+const Topic = require('../models/Topic');
+const Test = require('../models/Test');
+const StudySession = require('../models/StudySession');
 
 // @route   GET /api/subjects
 // @desc    Get all subjects for logged in user
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const subjects = await Subject.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const subjects = await Subject.find({
+      user: req.user._id
+    }).sort({ createdAt: -1 });
 
+    const topics = await Topic.find({
+      user: req.user._id
+    }).select('subject');
+
+    const topicCountMap = {};
+
+    topics.forEach(topic => {
+      const subjectId = topic.subject.toString();
+      topicCountMap[subjectId] = (topicCountMap[subjectId] || 0) + 1;
+    });
+
+    const subjectsWithTopicCount = subjects.map(subject => ({
+      ...subject.toObject(),
+      topicCount: topicCountMap[subject._id.toString()] || 0
+    }));
     res.json({
       success: true,
       count: subjects.length,
-      data: subjects
+      data: subjectsWithTopicCount
     });
   } catch (error) {
     console.error('Get subjects error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
-
-// @route   GET /api/subjects/:id
-// @desc    Get single subject
-// @access  Private
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const subject = await Subject.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    });
-
-    if (!subject) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subject not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: subject
-    });
-  } catch (error) {
-    console.error('Get subject error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -79,7 +50,7 @@ router.get('/:id', protect, async (req, res) => {
 // @desc    Create new subject
 router.post('/', protect, async (req, res) => {
   try {
-    const { name, description, color, targetScore, topics } = req.body;
+    const { name, description, color, targetScore } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -87,7 +58,6 @@ router.post('/', protect, async (req, res) => {
         message: 'Subject name is required'
       });
     }
-    const computedScore = calculateWeightedScore(topics);
 
     const subject = await Subject.create({
       user: req.user._id,
@@ -95,8 +65,6 @@ router.post('/', protect, async (req, res) => {
       description,
       color,
       targetScore,
-      topics: topics || [],
-      currentScore: computedScore
     });
 
     res.status(201).json({
@@ -191,6 +159,11 @@ router.delete('/:id', protect, async (req, res) => {
         message: 'Subject not found'
       });
     }
+    await Promise.all([
+      Test.deleteMany({ subject: req.params.id }),
+      StudySession.deleteMany({ subject: req.params.id }),
+      Topic.deleteMany({ subject: req.params.id })
+    ]);
 
     await Subject.findByIdAndDelete(req.params.id);
 
@@ -207,8 +180,7 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
-// AI COACH SYSTEM ADDITION
-
+// AI COACH SYSTEM 
 // @route   POST /api/subjects/:id/analyze
 // @desc    Generate an AI Study Plan tailored to weak topics and weights
 // @access  Private
@@ -222,9 +194,17 @@ router.post('/:id/analyze', protect, async (req, res) => {
 
     // Map out the topic weights cleanly for the prompt context
     const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-    const topicsContext = subject.topics && subject.topics.length > 0
-      ? subject.topics.map(t => `- ${t.name}: Score ${t.score}%, Weight/Difficulty: ${difficultyMap[t.weight] || 'Medium'}`).join('\n')
-      : 'No specific sub-topics added yet.';
+    const topics = await Topic.find({
+      subject: subject._id,
+      user: req.user._id
+    });
+    const topicsContext =
+      topics.length > 0
+      ? topics.map(t =>
+          `- ${t.name}: Score ${t.score}%, Weight/Difficulty: ${difficultyMap[t.weight] || 'Medium'}`
+        )
+        .join('\n')
+    : 'No specific sub-topics added yet.';
 
     const aiPrompt = `
       You are an elite academic performance coach and tutor. A student is tracking their progress in the subject "${subject.name}".
@@ -238,7 +218,6 @@ router.post('/:id/analyze', protect, async (req, res) => {
       Format your response using structured, clean Markdown with bullet points, bold key definitions, and actionable milestones so it renders beautifully on an application dashboard.
     `;
 
-    // Request content generation using standard flagship model
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: aiPrompt,
