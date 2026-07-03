@@ -14,7 +14,7 @@ const testSchema = new mongoose.Schema({
   topic: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic',
-    required: [true, 'Topic is required']
+    default: null
   },
   name: {
     type: String,

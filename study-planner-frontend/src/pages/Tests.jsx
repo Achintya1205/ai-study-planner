@@ -214,12 +214,12 @@ function Tests() {
                         </td>
                         <td className="px-6 py-4">
                             <div className="text-sm text-indigo-600 font-medium">{test.subject?.name}</div>
-                            <div className="text-xs text-gray-400">{test.topic?.name}</div>
+                            <div className="text-xs text-gray-400">{test.topic?.name || "Entire Subject"}</div>
                         </td>
                         <td className="px-6 py-4">
                             <div className="text-sm font-bold text-gray-800">{test.score}/{test.maxScore}</div>
-                            <div className={`text-xs font-black ${test.percentage >= 60 ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {test.percentage}% {test.percentage >= 60 ? 'PASS' : 'FAIL'}
+                            <div className={`text-xs font-black ${test.percentage >= 33 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {test.percentage}% {test.percentage >= 33 ? 'PASS' : 'FAIL'}
                             </div>
                         </td>
                         {/* DATE FORMAT: DD/MM/YYYY  */}
@@ -291,9 +291,9 @@ function Tests() {
                     disabled={!!editingTest || !formData.subject}
                     value={formData.topic} 
                     onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                    className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500" required 
+                    className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500"  
                   >
-                    <option value="">Select</option>
+                    <option value="">Entire Subject</option>
                     {getFilteredTopicsForForm().map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
                   </select>
                 </div>

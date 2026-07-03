@@ -5,26 +5,7 @@ const Subject = require('../models/Subject');
 const { protect } = require('../middleware/auth');
 const Test = require('../models/Test');
 const StudySession = require('../models/StudySession');
-
-const updateSubjectProgress = async (subjectId, userId) => {
-  try {
-
-    const topics = await Topic.find({ subject: subjectId, user: userId });
-    
-    if (topics.length === 0) {
-      await Subject.findByIdAndUpdate(subjectId, { currentScore: 0 });
-      return;
-    }
-
-    // Calculate the average score 
-    const totalScore = topics.reduce((sum, topic) => sum + (topic.score || 0), 0);
-    const averageScore = Math.round(totalScore / topics.length);
-
-    await Subject.findByIdAndUpdate(subjectId, { currentScore: averageScore });
-  } catch (error) {
-    console.error('Progress sync failed:', error);
-  }
-};
+const updateSubjectProgress = require('../utils/updateSubjectProgress');
 
 const calculateTopicStats = (score) => {
   let difficulty = 'hard'; 
@@ -72,6 +53,8 @@ router.post('/', protect, async (req, res) => {
       description,
       difficulty,
       score: score || 0,
+      initialScore: score || 0,
+      scoreSource: 'manual',
       isWeak,
       lastStudied
     });
@@ -105,7 +88,10 @@ router.put('/:id', protect, async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     ).populate('subject', 'name color');
-
+    if (topic.scoreSource !== "tests") {
+      topic.trend = 0;
+      await topic.save();
+    }
     // TRIGGER: Sync progress to Subject
     await updateSubjectProgress(topic.subject, req.user._id);
 

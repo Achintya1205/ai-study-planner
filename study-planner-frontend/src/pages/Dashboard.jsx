@@ -316,7 +316,7 @@ function Dashboard() {
                         <p className="text-xs text-gray-500">{new Date(test.date).toLocaleDateString()}</p>
                       </div>
                       <div className={`text-lg font-bold ${
-                        test.percentage >= 60 ? 'text-emerald-600' : 'text-red-600'
+                        test.percentage >= 33 ? 'text-emerald-600' : 'text-red-600'
                       }`}>
                         {test.percentage}%
                       </div>

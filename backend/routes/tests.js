@@ -3,6 +3,8 @@ const router = express.Router();
 const Test = require('../models/Test');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
+const updateTopicScore = require('../utils/updateTopicScore');
+const updateSubjectProgress = require('../utils/updateSubjectProgress');
 const { protect } = require('../middleware/auth');
 
 // All routes are protected
@@ -45,7 +47,7 @@ router.post('/', protect, async (req, res) => {
     const { subject, topic, name, score, maxScore, date, notes } = req.body;
 
     // Validate required fields
-    if (!name || !subject || !topic || score === undefined || !maxScore) {
+    if (!name || !subject || score === undefined || !maxScore) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
@@ -53,18 +55,19 @@ router.post('/', protect, async (req, res) => {
     }
 
     // Verify subject and topic belong to user
-    const [subjectExists, topicExists] = await Promise.all([
-      Subject.findOne({
-          _id: subject,
-          user: req.user._id
-      }),
-      Topic.findOne({
-          _id: topic,
-          user: req.user._id
-      })
-    ]);
+    const subjectExists = await Subject.findOne({
+      _id: subject,
+      user: req.user._id
+    });
 
-    if (!subjectExists || !topicExists) {
+    const topicExists = topic
+      ? await Topic.findOne({
+        _id: topic,
+        user: req.user._id
+      })
+    : null;
+
+    if (!subjectExists || topic && !topicExists) {
       return res.status(404).json({
         success: false,
         message: 'Subject or topic not found'
@@ -74,14 +77,18 @@ router.post('/', protect, async (req, res) => {
     const test = await Test.create({
       user: req.user._id,
       subject,
-      topic,
+      topic: topic || null,
       name,
       score,
       maxScore,
       date,
       notes
     });
-
+    if (test.topic) {
+      await updateTopicScore(test.topic);
+    }
+    await updateSubjectProgress(test.subject, req.user._id);
+    
     await test.populate('subject', 'name color');
     await test.populate('topic', 'name');
 
@@ -131,14 +138,19 @@ router.put('/:id', protect, async (req, res) => {
     if (score !== undefined && maxScore > 0) {
       percentage = Math.round((score / maxScore) * 100);
     }
+    const topicId = test.topic;
     test = await Test.findByIdAndUpdate(
       req.params.id,
-      { name, score, maxScore, percentage, date, notes },
+      { subject, topic: topic || null,name, score, maxScore, percentage, date, notes },
       { new: true, runValidators: true }
     )
       .populate('subject', 'name color')
       .populate('topic', 'name');
-
+    if (test.topic) {
+     await updateTopicScore(test.topic);
+    }
+    await updateSubjectProgress(test.subject, req.user._id);
+    
     res.json({
       success: true,
       message: 'Test updated successfully',
@@ -180,7 +192,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     await Test.findByIdAndDelete(req.params.id);
-
+    await updateSubjectProgress(test.subject, req.user._id);
     res.json({
       success: true,
       message: 'Test deleted successfully'

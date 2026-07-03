@@ -176,9 +176,29 @@ function Topics() {
                 
                 <div className="mb-8">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-500 font-medium">Mastery</span>
-                    <span className="font-bold">{topic.score}%</span>
-                  </div>
+                    <span className="text-gray-500 font-medium">
+                      Mastery
+                    </span>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">{topic.score}%</span>
+
+                    {topic.scoreSource === "tests" && topic.trend !== 0 && (
+                      <span
+                        className={`text-xs font-bold ${
+                          topic.trend > 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {topic.trend > 0 ? `▲ ${topic.trend}%` : `▼ ${Math.abs(topic.trend)}%`}
+                      </span>
+                    )}
+                </div>
+              </div>
+                <p className="text-xs text-gray-400 mb-2">
+                  Source: {topic.scoreSource === "manual"
+                  ? "Self Assessment"
+                  : "Last 3 Tests"}
+                </p>
                   <div className="w-full bg-gray-100 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-700 ${
@@ -234,17 +254,23 @@ function Topics() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Score (%)</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Initial Self Assessment (%)</label>
                 <input 
                   type="number" 
                   
                   // parse the value as an integer. If the input is empty, set it to 0.
                   value={formData.score === 0 ? "" : formData.score} 
                   placeholder="0"
+                  disabled={editingTopic && formData.scoreSource === "tests"}
                   onChange={(e) => setFormData({...formData, score: parseInt(e.target.value) || 0})}
                   className="w-full border-2 border-gray-100 p-3 rounded-xl outline-none"
                   min="0" max="100"
                 />
+                {editingTopic && formData.scoreSource === "tests" && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    This score is automatically calculated from your latest 3 tests.
+                  </p>
+                )}
               </div>
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 py-3 font-bold text-gray-400 hover:text-gray-600">Cancel</button>

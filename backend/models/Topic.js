@@ -33,6 +33,21 @@ const topicSchema = new mongoose.Schema({
     min: [0, 'Score cannot be negative'],
     max: [100, 'Score cannot exceed 100']
   },
+  initialScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  trend: {
+    type: Number,
+    default: 0
+  },
+  scoreSource: {
+    type: String,
+    enum: ['manual', 'tests'],
+    default: 'manual'
+  },
   isWeak: {
     type: Boolean,
     default: false
