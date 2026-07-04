@@ -322,12 +322,13 @@ function Tests() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Max Score</label>
-                  <input 
-                    type="number" value={formData.maxScore} min="1" max="1000"
-                    onChange={(e) => setFormData({ ...formData, maxScore: parseInt(e.target.value) || 100 })}
+                  <input
+                    type="number"  value={formData.maxScore} min="1"  max="1000"
+                    onChange={(e) => setFormData({ ...formData, maxScore: e.target.value })}
                     className="w-full border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-indigo-500" required
-                  />
+                />
                 </div>
+                
               </div>
 
               <div>
