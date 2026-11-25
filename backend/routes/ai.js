@@ -8,6 +8,13 @@ const StudySession = require('../models/StudySession');
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+const goalInstructions = {
+  exam: 'Intensive exam preparation. Prioritize revision, practice questions and the weakest topics. Add a mock test at least twice a week. Keep the pace high.',
+  improve: 'Focus ONLY on topics scoring below 60%. Ignore strong topics. Spend most of the time on the lowest scores and repeat them across the week.',
+  maintain: 'Light and consistent routine. Revise strong topics regularly, keep sessions short, and avoid burnout. Do not overload any day.',
+  master: 'Aim for excellence in all subjects. Include advanced practice even for strong topics, and spread time evenly across all subjects.'
+};
+
 // @route   POST /api/ai/study-plan
 // @desc    Generate personalized AI study plan using Google Gemini
 // @access  Private
@@ -33,16 +40,16 @@ router.post('/study-plan', protect, async (req, res) => {
 
     // Identify weak topics (score < 60%)
     const weakTopics = topics.filter(t => t.isWeak);
-    
+
     // Calculate average scores per subject
     const subjectPerformance = subjects.map(subject => {
-      const subjectTopics = topics.filter(t => 
+      const subjectTopics = topics.filter(t =>
         t.subject.toString() === subject._id.toString()
       );
       const avgScore = subjectTopics.length > 0
         ? subjectTopics.reduce((sum, t) => sum + (t.score || 0), 0) / subjectTopics.length
         : 0;
-      
+
       return {
         name: subject.name,
         avgScore: Math.round(avgScore),
@@ -73,27 +80,33 @@ router.post('/study-plan', protect, async (req, res) => {
       recentTests,
       totalStudyHours: Math.round(totalStudyMinutes / 60),
       averageFocus: avgFocus.toFixed(1),
-      goal: goal || 'Improve overall performance',
+      goal: goal || 'improve',
       studyHoursPerDay: studyHoursPerDay || 3,
       targetDate: targetDate || 'Next 30 days'
     };
 
+    // Pick the rules for the selected mode
+    const goalText = goalInstructions[userContext.goal] || goalInstructions.improve;
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    const model = genAI.getGenerativeModel({ 
+
+    const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
       }
     });
-  const prompt = `You are the 'OmniStudy' Strategy Engine. Your goal is to maximize the ROI (Return on Investment) of a student's study time by identifying efficiency gaps.
+
+    const prompt = `You are the 'OmniStudy' Strategy Engine. Your goal is to maximize the ROI (Return on Investment) of a student's study time by identifying efficiency gaps.
 
 - Subjects & Topics: ${userContext.subjects.join(', ')} (${userContext.totalTopics} total topics)
 - Performance & Weak Areas: ${userContext.weakTopics.map(t => `${t.name} (${t.score}%, ${t.difficulty})`).join(', ')}
 - Historical Effort: ${userContext.totalStudyHours}h spent with ${userContext.averageFocus}/5 focus.
-- Constraints: ${userContext.studyHoursPerDay} hrs/day until ${userContext.targetDate}. Goal: ${userContext.goal}.
+- Constraints: ${userContext.studyHoursPerDay} hrs/day until ${userContext.targetDate}.
+- Goal: ${userContext.goal}
+- MODE RULES (follow these strictly): ${goalText}
 
-1. THE 80/20 RULE: Prioritize topics where (Difficulty = High) AND (Score < 50%). 
+1. THE 80/20 RULE: Prioritize topics where (Difficulty = hard) AND (Score < 50%).
 2. EFFICIENCY CHECK: If a subject has high study hours but low scores, suggest a "Method Pivot" in the focus field.
 3. COGNITIVE LOAD: Never schedule more than 2 difficult topics in a single day.
 4. VARIETY: Alternate between two different subjects per day to prevent burnout.
@@ -127,6 +140,7 @@ IMPORTANT:
 - Return ONLY valid JSON.
 - If no data exists for a field, provide a logical suggestion based on the Goal.
 - Plan for all 7 days.`;
+
     // Call Gemini API with proper error handling
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -137,7 +151,7 @@ IMPORTANT:
 
     // Parse AI response
     let studyPlan;
-    
+
     try {
       studyPlan = JSON.parse(aiResponse);
     } catch (parseError) {
@@ -163,7 +177,7 @@ IMPORTANT:
 
   } catch (error) {
     console.error('AI study plan error:', error);
-    
+
     // Handle specific Gemini errors
     if (error.message?.includes('API_KEY_INVALID')) {
       return res.status(401).json({

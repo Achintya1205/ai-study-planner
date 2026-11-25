@@ -132,7 +132,7 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    const { name, score, maxScore, date, notes } = req.body;
+    const { subject, topic, name, score, maxScore, date, notes } = req.body;
     let percentage;
 
     if (score !== undefined && maxScore > 0) {
@@ -141,16 +141,16 @@ router.put('/:id', protect, async (req, res) => {
     const topicId = test.topic;
     test = await Test.findByIdAndUpdate(
       req.params.id,
-      { subject, topic: topic || null,name, score, maxScore, percentage, date, notes },
+      { subject, topic: topic || null, name, score, maxScore, percentage, date, notes },
       { new: true, runValidators: true }
     )
       .populate('subject', 'name color')
       .populate('topic', 'name');
     if (test.topic) {
-     await updateTopicScore(test.topic);
+      await updateTopicScore(test.topic);
     }
     await updateSubjectProgress(test.subject, req.user._id);
-    
+
     res.json({
       success: true,
       message: 'Test updated successfully',

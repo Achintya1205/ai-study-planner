@@ -180,9 +180,9 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
-// AI COACH SYSTEM 
+// AI COACH SYSTEM
 // @route   POST /api/subjects/:id/analyze
-// @desc    Generate an AI Study Plan tailored to weak topics and weights
+// @desc    Generate a 3-day recovery roadmap tailored to weak topics
 // @access  Private
 router.post('/:id/analyze', protect, async (req, res) => {
   try {
@@ -192,28 +192,27 @@ router.post('/:id/analyze', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Subject not found' });
     }
 
-    // Map out the topic weights cleanly for the prompt context
-    const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+    // Use the real "difficulty" field (easy / medium / hard) from the Topic model
     const topics = await Topic.find({
       subject: subject._id,
       user: req.user._id
     });
+
     const topicsContext =
       topics.length > 0
-      ? topics.map(t =>
-          `- ${t.name}: Score ${t.score}%, Weight/Difficulty: ${difficultyMap[t.weight] || 'Medium'}`
-        )
-        .join('\n')
-    : 'No specific sub-topics added yet.';
+        ? topics.map(t =>
+            `- ${t.name}: Score ${t.score}%, Difficulty: ${t.difficulty}`
+          ).join('\n')
+        : 'No specific sub-topics added yet.';
 
     const aiPrompt = `
       You are an elite academic performance coach and tutor. A student is tracking their progress in the subject "${subject.name}".
-      Their current overall weighted proficiency score is ${subject.currentScore || 0}%, and their target goal is ${subject.targetScore || 80}%.
-      
-      Here are the specific topics they are tracking, along with their scores and concept difficulties:
+      Their current overall proficiency score is ${subject.currentScore || 0}%, and their target goal is ${subject.targetScore || 80}%.
+
+      Here are the specific topics they are tracking, along with their scores and difficulty levels:
       ${topicsContext}
 
-      Task: Identify the student's primary bottlenecks (prioritizing low scores on high-weight/hard topics). 
+      Task: Identify the student's primary bottlenecks (prioritizing low scores on hard topics).
       Generate a practical, highly actionable 3-day emergency recovery study roadmap.
       Format your response using structured, clean Markdown with bullet points, bold key definitions, and actionable milestones so it renders beautifully on an application dashboard.
     `;
